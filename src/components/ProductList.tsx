@@ -7,6 +7,7 @@ import Image from "next/image";
 
 interface Product {
   idProduct: number;
+  slug: string; // 🔑 Tambahin slug
   nameProduct: string;
   price: number;
   nameStore: string;
@@ -29,7 +30,7 @@ export default function ProductList({ data }: { data: Product[] }) {
         {products.map((product) => (
           <Link
             key={product.idProduct}
-            href={`/products/${product.idProduct}`}
+            href={`/products/${product.slug}`} // 🔑 Ganti ke slug
             className="hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl bg-gray-100 overflow-hidden block border border-gray-300"
           >
             {/* Gambar Produk */}
@@ -37,7 +38,8 @@ export default function ProductList({ data }: { data: Product[] }) {
               <Image
                 src={product.primaryImage || "/fallback.jpg"}
                 alt={product.nameProduct}
-                className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                fill
+                className="absolute top-0 left-0 object-cover hover:scale-105 transition-transform duration-300"
                 draggable={false}
                 loading="lazy"
               />

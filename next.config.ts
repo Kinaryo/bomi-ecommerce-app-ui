@@ -16,6 +16,12 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com", // tambahkan ini supaya placeholder bisa load
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };

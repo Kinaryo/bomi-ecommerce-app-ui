@@ -14,7 +14,7 @@ interface Comment {
 
 export default function CommentList({ data }: { data: Comment[] }) {
   return (
-      <div className="mx-auto p-8 md:p-2 lg:p-8 mt-4">
+    <div className="mx-auto p-8 md:p-2 lg:p-8 mt-4">
       <h1 className="flex items-center justify-center gap-2 text-3xl font-extrabold text-gray-800 mb-6">
         Testimoni Pelanggan
       </h1>
@@ -28,9 +28,12 @@ export default function CommentList({ data }: { data: Comment[] }) {
           >
             <div className="flex items-center gap-3 mb-3">
               <Image
-                src={cmt.profileUrl}
+                src={cmt.profileUrl || "/fallback-avatar.png"}
                 alt={cmt.userName}
-                className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
+                width={48}
+                height={48}
+                className="rounded-full border-2 border-gray-300 object-cover"
+                loading="lazy"
               />
               <div>
                 <p className="font-semibold text-gray-800">{cmt.userName}</p>
@@ -46,7 +49,9 @@ export default function CommentList({ data }: { data: Comment[] }) {
                       }`}
                     />
                   ))}
-                  <span className="text-sm font-medium text-gray-700">{cmt.rating}</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {cmt.rating}
+                  </span>
                 </div>
               </div>
             </div>

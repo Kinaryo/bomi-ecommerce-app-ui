@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +12,7 @@ interface Product {
   nameProduct: string;
   price: number;
   nameStore: string | null;
+  slugProduct: string | null;
   primaryImage: string | null;
   avgRating: number;
   totalReviews: number;
@@ -232,7 +233,7 @@ export default function ProductsPage() {
           return (
             <Link
               key={product.idProduct}
-              href={`/products/${product.idProduct}`}
+              href={`/products/${product.slugProduct}`} // ✅ pakai slug dari API
               className="hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl bg-gray-100 overflow-hidden block border border-gray-300"
               ref={isLast ? lastProductCallback : null}
             >

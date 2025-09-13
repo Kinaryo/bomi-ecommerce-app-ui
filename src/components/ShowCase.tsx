@@ -16,7 +16,7 @@ export default function ShowCase({ data }: { data: ShowCaseItem[] }) {
   const [nextIndex, setNextIndex] = useState<number | null>(null);
   const [direction, setDirection] = useState<"next" | "prev">("next");
   const [animating, setAnimating] = useState(false);
-  const [showControls, setShowControls] = useState(false); // untuk mobile tap
+  const [showControls, setShowControls] = useState(false);
 
   const ANIMATION_DURATION = 500; // ms
   const AUTO_SLIDE_INTERVAL = 5000; // ms
@@ -98,7 +98,9 @@ export default function ShowCase({ data }: { data: ShowCaseItem[] }) {
   };
 
   const transitionStyle = {
-    transition: animating ? `transform ${ANIMATION_DURATION}ms ease-in-out` : "none",
+    transition: animating
+      ? `transform ${ANIMATION_DURATION}ms ease-in-out`
+      : "none",
   } as React.CSSProperties;
 
   return (
@@ -149,7 +151,8 @@ export default function ShowCase({ data }: { data: ShowCaseItem[] }) {
           <Image
             alt={`Showcase ${currentIndex + 1}`}
             src={data[currentIndex].imageUrl}
-            className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none z-10"
+            fill
+            className="absolute top-0 left-0 object-cover pointer-events-none z-10"
             style={{ ...transitionStyle, transform: getCurrentTransform() }}
             draggable={false}
           />
@@ -159,7 +162,8 @@ export default function ShowCase({ data }: { data: ShowCaseItem[] }) {
             <Image
               alt={`Showcase ${nextIndex + 1}`}
               src={data[nextIndex].imageUrl}
-              className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none z-10"
+              fill
+              className="absolute top-0 left-0 object-cover pointer-events-none z-10"
               style={{ ...transitionStyle, transform: getNextTransform() }}
               draggable={false}
             />
