@@ -362,9 +362,9 @@ export default function ReviewPage() {
               </div>
             )}
 
-            {review.replies?.length > 0 && (
+            {(review.replies ?? []).length > 0 && (
               <div className="mt-4 space-y-3">
-                {review.replies.map((reply) => (
+                {(review.replies ?? []).map((reply) => (
                   <div
                     key={reply.idReply}
                     className="flex gap-3 bg-gray-50 p-3 rounded-lg border-l-4 border-blue-400"
@@ -396,6 +396,7 @@ export default function ReviewPage() {
         </>
       ) : (
         <>
+          {/* Form edit/tulis review */}
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             {review ? "Edit Review" : "Tulis Review"}
           </h1>
