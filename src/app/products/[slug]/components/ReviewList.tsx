@@ -33,7 +33,13 @@ interface Review {
 }
 
 // ================== Component ==================
-export default function ReviewList({ reviews, slugProduct }: { reviews: Review[]; slugProduct: string }) {
+export default function ReviewList({
+  reviews,
+  slugProduct,
+}: {
+  reviews: Review[];
+  slugProduct: string;
+}) {
   const router = useRouter();
 
   const handleSeeAllReviews = () => {
