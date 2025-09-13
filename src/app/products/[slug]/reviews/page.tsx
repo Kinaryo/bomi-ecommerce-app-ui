@@ -57,8 +57,13 @@ export default function ReviewsPage() {
           page === 1 ? resData.data || [] : [...prev, ...(resData.data || [])]
         );
         setHasMore(resData.data?.length > 0);
-      } catch (err: any) {
-        Swal.fire("Error", err.message || "Gagal memuat ulasan", "error");
+      } catch (err: unknown) {
+        // Gunakan type guard untuk menangani unknown error
+        if (err instanceof Error) {
+          Swal.fire("Error", err.message, "error");
+        } else {
+          Swal.fire("Error", "Gagal memuat ulasan", "error");
+        }
       } finally {
         setLoading(false);
       }
