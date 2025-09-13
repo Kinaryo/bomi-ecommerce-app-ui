@@ -1,4 +1,4 @@
-// app/products/[slug]/ClientProduct.tsx
+// src/app/products/[slug]/ClientProduct.tsx
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -10,9 +10,17 @@ import StoreCard from "./components/StoreCard";
 import RelatedProduct from "./components/RelatedProduct";
 import { ShoppingCart } from "lucide-react";
 
-interface ProductImage { idImage: number; imageUrl: string; }
+/* -------------------- Types -------------------- */
+
+type ID = string | number;
+
+interface ProductImage {
+  idImage: number;
+  imageUrl: string;
+}
+
 interface Product {
-  idProduct: string;
+  idProduct: ID;
   slug: string;
   name: string;
   description: string;
@@ -22,13 +30,61 @@ interface Product {
   stock: number;
   images: ProductImage[];
 }
-interface Store { slug: string; storeName: string; storeAddress: string; storeImageUrl: string; rating: number; }
-interface ReviewImage { idImage: number; imageUrl: string; publicId: string; }
-interface SellerReply { idReply: number; reply: string; seller: { name: string; role: string; profileImageUrl?: string; }; }
-interface Review { name: string; profileImageUrl?: string; createdAt: string; rating: number; comment: string; images?: ReviewImage[]; replies?: SellerReply[]; }
-interface RelatedProductType { idProduct: string; slug: string; name: string; price: number; imageUrl: string; avgRating?: number; }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+interface Store {
+  slug: string;
+  storeName: string;
+  storeAddress: string;
+  storeImageUrl: string;
+  rating: number;
+}
+
+interface ReviewImage {
+  idImage: number;
+  imageUrl: string;
+  publicId: string;
+}
+
+interface SellerReply {
+  idReply: number;
+  reply: string;
+  seller: {
+    name: string;
+    role: string;
+    profileImageUrl?: string;
+  };
+}
+
+interface Review {
+  name: string;
+  profileImageUrl?: string;
+  createdAt: string;
+  rating: number;
+  comment: string;
+  images?: ReviewImage[];
+  replies?: SellerReply[];
+}
+
+interface RelatedProductType {
+  idProduct: ID;
+  slug: string;
+  name: string;
+  price: number;
+  imageUrl: string;
+  avgRating?: number;
+}
+
+/** shape of the data returned from server page fetch (json.data) */
+interface InitialData {
+  dataProduct?: Product;
+  dataStore?: Store;
+  dataReview?: Review[];
+  relatedProducts?: RelatedProductType[];
+}
+
+/* -------------------- Helpers -------------------- */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
 
 function requireLogin(callback: () => void) {
   const token = localStorage.getItem("token");
@@ -61,11 +117,13 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   });
 }
 
-export default function ClientProduct({ initialData }: { initialData: any }) {
-  const prod: Product | null = initialData?.dataProduct ?? null;
-  const store: Store | null = initialData?.dataStore ?? null;
-  const reviews: Review[] = initialData?.dataReview ?? [];
-  const related: RelatedProductType[] = initialData?.relatedProducts ?? [];
+/* -------------------- Component -------------------- */
+
+export default function ClientProduct({ initialData }: { initialData: InitialData }) {
+  const prod = initialData?.dataProduct ?? null;
+  const store = initialData?.dataStore ?? null;
+  const reviews = initialData?.dataReview ?? [];
+  const related = initialData?.relatedProducts ?? [];
 
   const [dataProduct, setDataProduct] = useState<Product | null>(prod);
   const [dataStore, setDataStore] = useState<Store | null>(store);
@@ -73,14 +131,18 @@ export default function ClientProduct({ initialData }: { initialData: any }) {
   const [relatedProducts, setRelatedProducts] = useState<RelatedProductType[]>(related);
   const [loading, setLoading] = useState({ buyNow: false, addCart: false });
 
-  const slug = prod?.slug ?? dataProduct?.slug;
+  const slug = dataProduct?.slug ?? prod?.slug;
 
   const fetchProduct = useCallback(async () => {
     if (!slug) return;
     try {
       const res = await fetch(`${API_BASE}/user/products/${slug}`);
+      if (!res.ok) {
+        console.error("fetch product not ok", res.status);
+        return;
+      }
       const resData = await res.json();
-      if (resData.status === "success") {
+      if (resData?.status === "success" && resData.data) {
         setDataProduct(resData.data.dataProduct as Product);
         setDataStore(resData.data.dataStore as Store);
         setDataReview(resData.data.dataReview as Review[]);
@@ -92,7 +154,7 @@ export default function ClientProduct({ initialData }: { initialData: any }) {
   }, [slug]);
 
   useEffect(() => {
-    // polling optional: initialData sudah tersedia, tapi kita tetap refresh
+    // polling optional — initial data came from server render but kita refresh berkala
     const interval = setInterval(() => {
       fetchProduct();
     }, 10000);
@@ -102,7 +164,6 @@ export default function ClientProduct({ initialData }: { initialData: any }) {
   if (!dataProduct || !dataStore)
     return <div className="max-w-4xl mx-auto p-6 text-gray-700">Memuat...</div>;
 
-  // ---------- handlers (sama seperti kode kamu) ----------
   const handleAddToCart = () => {
     if (dataProduct.stock <= 0) {
       Swal.fire({ icon: "warning", title: "Stok Habis", text: "Produk tidak tersedia" });
@@ -184,13 +245,12 @@ export default function ClientProduct({ initialData }: { initialData: any }) {
     });
   };
 
-  // ---------- render UI (sama seperti kode kamu) ----------
   return (
     <div className="mx-auto p-3 md:p-2 lg:p-8 mt-20 max-w-6xl">
-      {/* ... sisanya tetap seperti kode yang sudah kamu punya ... */}
       <h1 className="flex items-center justify-center gap-2 text-3xl font-extrabold text-gray-800 mb-6">
         Detail Produk
       </h1>
+
       <div className="flex flex-col md:flex-row gap-8 border-gray-400 rounded-md shadow-md p-6">
         <div className="w-full md:w-1/2">
           {dataProduct.images?.length > 0 && (
