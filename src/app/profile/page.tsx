@@ -48,7 +48,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [switching, setSwitching] = useState(false);
-  const [showImageModal] = useState(false); // tidak digunakan, bisa dihapus jika tidak butuh
   const [showResetModal, setShowResetModal] = useState(false);
   const [showProfileSheet, setShowProfileSheet] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -213,7 +212,7 @@ export default function ProfilePage() {
           html: `
             <p>Anda berhasil menjadi seller!</p>
             <p class="mt-2 text-sm text-gray-600">
-              Anda akan diarahkan ke halaman toko,  silakan lengkapi data toko.
+              Anda akan diarahkan ke halaman toko, silakan lengkapi data toko.
             </p>
           `,
           icon: "success",
@@ -259,7 +258,7 @@ export default function ProfilePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {/* Foto */}
+          {/* Foto Profil */}
           <div className="flex justify-center">
             <div className="relative w-32 h-32">
               {profile.profileUrl ? (
@@ -368,7 +367,7 @@ export default function ProfilePage() {
           {/* Alamat */}
           <ProfileAddress shippingAddress={shippingAddress} />
 
-          {/* Role actions */}
+          {/* Role Actions */}
           {profile.role === "customer" && (
             <div className="text-center">
               <button
@@ -414,7 +413,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {/* Bottom sheet opsi profil */}
+        {/* Bottom Sheet Opsi Profil */}
         <AnimatePresence>
           {showProfileSheet && (
             <motion.div

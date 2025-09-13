@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -74,9 +74,9 @@ export default function ProductsPage() {
     };
 
     fetchCategories();
-  }, [router]);
+  }, []);
 
-  // FETCH PRODUCTS (dibungkus useCallback supaya stabil)
+  // FETCH PRODUCTS
   const fetchProducts = useCallback(
     async (page: number, query = "", categoryId: number | null = null) => {
       setLoadingProducts(true);
@@ -116,7 +116,7 @@ export default function ProductsPage() {
         setLoadingProducts(false);
       }
     },
-    [FIRST_BATCH_LIMIT, NEXT_BATCH_LIMIT, API_BASE_URL]
+    [FIRST_BATCH_LIMIT, NEXT_BATCH_LIMIT]
   );
 
   // OBSERVER REF CALLBACK

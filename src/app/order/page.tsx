@@ -8,7 +8,17 @@ import Image from 'next/image';
 
 declare global {
   interface Window {
-    snap: unknown; // <== tidak lagi any
+    snap?: {
+      pay: (
+        token: string | undefined,
+        callbacks: {
+          onSuccess?: () => void;
+          onPending?: () => void;
+          onError?: () => void;
+          onClose?: () => void;
+        }
+      ) => void;
+    };
   }
 }
 
@@ -38,7 +48,6 @@ const STATUS_COLORS: Record<Status, string> = {
   cancelled: 'bg-red-100 text-red-700',
 };
 
-// ============== tipe data order ==============
 interface OrderItem {
   idProduct: string;
   productImage: string;
@@ -61,7 +70,6 @@ interface Order {
   items: OrderItem[];
 }
 
-// ==================== FETCH DENGAN TOKEN ====================
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token =
     typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -117,7 +125,6 @@ export default function OrderPage() {
     });
   };
 
-  // ==================== FETCH ORDERS ====================
   useEffect(() => {
     if (!token) {
       router.push('/login');
@@ -146,7 +153,6 @@ export default function OrderPage() {
     fetchOrders();
   }, [router, token]);
 
-  // ==================== LOAD MIDTRANS SNAP ====================
   useEffect(() => {
     const script = document.createElement('script');
     script.src = `${process.env.NEXT_PUBLIC_MIDTRANS_URL}/snap/snap.js`;
@@ -157,23 +163,21 @@ export default function OrderPage() {
     document.body.appendChild(script);
   }, []);
 
-  // Sinkronkan tab ketika URL berubah
   useEffect(() => {
     setActiveTab(tabFromUrl);
   }, [tabFromUrl]);
 
-  // Update URL ketika klik tab
   const handleChangeTab = (status: Status) => {
     setActiveTab(status);
     router.push(`/order?tab=${status}`);
   };
 
   const handlePayNow = (order: Order) => {
-    if (!window.snap || typeof window.snap !== 'object') {
+    if (!window.snap) {
       alert('Snap belum siap, coba lagi beberapa detik.');
       return;
     }
-    (window.snap as any).pay(order.paymentToken, {
+    window.snap.pay(order.paymentToken, {
       onSuccess: () => showAlert('Sukses', 'Pembayaran berhasil!', 'success'),
       onPending: () =>
         showAlert('Pending', 'Pembayaran menunggu konfirmasi.', 'info'),
@@ -188,7 +192,6 @@ export default function OrderPage() {
     });
   };
 
-  // ==================== BUY AGAIN ====================
   const handleBuyAgain = async (order: Order) => {
     try {
       if (!token) {
@@ -200,7 +203,7 @@ export default function OrderPage() {
         title: 'Beli Lagi',
         html: order.items
           .map(
-            (item, idx) => `
+            (item, idx) => `  
           <div class="mb-2">
             <label class="block text-left mb-1">${item.productName}</label>
             <input type="number" id="qty-${idx}" class="swal2-input" value="${item.quantity}" min="1">
@@ -273,7 +276,6 @@ export default function OrderPage() {
         Order
       </h1>
 
-      {/* Tabs */}
       <div className="flex overflow-x-auto gap-3 mb-8 no-scrollbar pb-2">
         {STATUS_TABS.map((status) => (
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { MapPin } from "lucide-react";
@@ -61,10 +61,14 @@ export default function AddShippingAddress() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const authHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  // ✅ useMemo supaya authHeaders stabil
+  const authHeaders = useMemo(
+    () => ({
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }),
+    [token]
+  );
 
   // 🔹 Ambil provinsi
   useEffect(() => {
@@ -73,9 +77,7 @@ export default function AddShippingAddress() {
       headers: authHeaders,
     })
       .then((res) => res.json())
-      .then((data) => {
-        setProvinces(Array.isArray(data.data) ? data.data : []);
-      })
+      .then((data) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
   }, [authHeaders]);
@@ -89,9 +91,7 @@ export default function AddShippingAddress() {
       { headers: authHeaders }
     )
       .then((res) => res.json())
-      .then((data) => {
-        setCities(Array.isArray(data.cities) ? data.cities : []);
-      })
+      .then((data) => setCities(Array.isArray(data.cities) ? data.cities : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
   }, [form.provinceId, authHeaders]);
@@ -105,9 +105,9 @@ export default function AddShippingAddress() {
       { headers: authHeaders }
     )
       .then((res) => res.json())
-      .then((data) => {
-        setDistricts(Array.isArray(data.districts) ? data.districts : []);
-      })
+      .then((data) =>
+        setDistricts(Array.isArray(data.districts) ? data.districts : [])
+      )
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
   }, [form.cityId, authHeaders]);
@@ -121,11 +121,9 @@ export default function AddShippingAddress() {
       { headers: authHeaders }
     )
       .then((res) => res.json())
-      .then((data) => {
-        setSubDistricts(
-          Array.isArray(data.subDistricts) ? data.subDistricts : []
-        );
-      })
+      .then((data) =>
+        setSubDistricts(Array.isArray(data.subDistricts) ? data.subDistricts : [])
+      )
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
   }, [form.districtId, authHeaders]);
@@ -191,7 +189,7 @@ export default function AddShippingAddress() {
 
   return (
     <motion.div
-      className="max-w-6xl mx-auto p-4  mt-20"
+      className="max-w-6xl mx-auto p-4 mt-20"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -207,7 +205,6 @@ export default function AddShippingAddress() {
       >
         {/* Bagian Kiri: Input */}
         <div className="space-y-3">
-          {/* Province */}
           <select
             name="provinceId"
             value={form.provinceId}
@@ -229,7 +226,6 @@ export default function AddShippingAddress() {
             ))}
           </select>
 
-          {/* City */}
           <select
             name="cityId"
             value={form.cityId}
@@ -254,7 +250,6 @@ export default function AddShippingAddress() {
             ))}
           </select>
 
-          {/* District */}
           <select
             name="districtId"
             value={form.districtId}
@@ -279,7 +274,6 @@ export default function AddShippingAddress() {
             ))}
           </select>
 
-          {/* Sub District */}
           <select
             name="subDistrictId"
             value={form.subDistrictId}
@@ -304,7 +298,6 @@ export default function AddShippingAddress() {
             ))}
           </select>
 
-          {/* Street */}
           <input
             type="text"
             name="street"
@@ -315,7 +308,6 @@ export default function AddShippingAddress() {
             required
           />
 
-          {/* House number */}
           <input
             type="text"
             name="houseNumber"
@@ -326,7 +318,6 @@ export default function AddShippingAddress() {
             required
           />
 
-          {/* RT RW */}
           <div className="flex gap-2">
             <input
               type="text"
@@ -348,7 +339,6 @@ export default function AddShippingAddress() {
             />
           </div>
 
-          {/* Address Line */}
           <input
             type="text"
             name="addressLine"
@@ -380,7 +370,6 @@ export default function AddShippingAddress() {
             />
           </div>
 
-          {/* Latitude & Longitude */}
           <div className="flex gap-2">
             <div className="w-1/2">
               <label className="block text-xs text-gray-500 mb-1">Latitude</label>
@@ -406,7 +395,6 @@ export default function AddShippingAddress() {
         </div>
       </form>
 
-      {/* Tombol submit terpisah */}
       <div className="mt-6">
         <button
           type="submit"

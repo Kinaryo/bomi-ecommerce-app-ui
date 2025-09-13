@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   MapPinHouse,
@@ -51,12 +51,30 @@ interface ShippingOption {
   courier?: string;
 }
 
+// === untuk typing window.snap ===
+interface SnapWindow extends Window {
+  snap?: {
+    pay: (
+      token: string,
+      callbacks: {
+        onSuccess?: () => void;
+        onPending?: () => void;
+        onError?: () => void;
+        onClose?: () => void;
+      }
+    ) => void;
+  };
+}
+
 export default function CheckoutPaymentPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const itemsParam =
     searchParams.get('items') || searchParams.get('idCartItem');
-  const cartItemIds = itemsParam?.split(',').map(Number) || [];
+
+  const cartItemIds = useMemo(() => {
+    return itemsParam?.split(',').map(Number) || [];
+  }, [itemsParam]);
 
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [selectedShippingCost, setSelectedShippingCost] = useState<number>(0);
@@ -250,9 +268,10 @@ export default function CheckoutPaymentPage() {
 
       await loadSnapScript();
 
-      if ((window as any).snap) {
+      const snapWindow = window as SnapWindow;
+      if (snapWindow.snap) {
         showLoading('Membuka Popup Pembayaran...');
-        (window as any).snap.pay(data.paymentToken, {
+        snapWindow.snap.pay(data.paymentToken, {
           onSuccess: () => {
             closeLoading();
             showAlert('Sukses', 'Pembayaran berhasil!', 'success', () =>

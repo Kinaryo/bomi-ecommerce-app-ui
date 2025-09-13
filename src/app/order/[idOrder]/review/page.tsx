@@ -49,26 +49,19 @@ export default function ReviewPage() {
   const [review, setReview] = useState<Review | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Form state
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState(5);
   const [images, setImages] = useState<LocalImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // cache buster untuk gambar
   const [imageVersion, setImageVersion] = useState<number>(Date.now());
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Fetch review
   const fetchReview = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
       return null;
     }
-
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/review/${idOrder}`,
@@ -101,13 +94,7 @@ export default function ReviewPage() {
     return () => {
       images.forEach((i) => URL.revokeObjectURL(i.preview));
     };
-  }, [fetchReview]);
-
-  useEffect(() => {
-    return () => {
-      images.forEach((i) => URL.revokeObjectURL(i.preview));
-    };
-  }, []);
+  }, [fetchReview, images]);
 
   const handleSubmit = async () => {
     if (!comment.trim()) {
@@ -154,14 +141,15 @@ export default function ReviewPage() {
       if (data.status === "success") {
         await fetchReview();
         setImageVersion(Date.now());
-
         images.forEach((i) => URL.revokeObjectURL(i.preview));
         setImages([]);
         if (fileInputRef.current) fileInputRef.current.value = "";
 
         Swal.fire({
           title: "Sukses",
-          text: isEditing ? "Review berhasil diperbarui" : "Review berhasil dikirim",
+          text: isEditing
+            ? "Review berhasil diperbarui"
+            : "Review berhasil dikirim",
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -365,6 +353,8 @@ export default function ReviewPage() {
                     <Image
                       src={withCacheBuster(img.imageUrl)}
                       alt="review-img"
+                      width={96}
+                      height={96}
                       className="w-24 h-24 object-cover rounded-lg border"
                     />
                   </div>
@@ -380,11 +370,10 @@ export default function ReviewPage() {
                     className="flex gap-3 bg-gray-50 p-3 rounded-lg border-l-4 border-blue-400"
                   >
                     <Image
-                      src={
-                        reply.seller?.profileImageUrl ||
-                        "https://via.placeholder.com/40x40.png?text=S"
-                      }
+                      src={reply.seller?.profileImageUrl || "https://via.placeholder.com/40x40.png?text=S"}
                       alt={reply.seller?.name || "seller"}
+                      width={36}
+                      height={36}
                       className="w-9 h-9 rounded-full object-cover border"
                     />
                     <div className="flex-1">
@@ -416,17 +405,8 @@ export default function ReviewPage() {
             <label className="block font-medium text-gray-700">Rating</label>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setRating(n)}
-                  className="focus:outline-none"
-                >
-                  <Star
-                    size={24}
-                    className={n <= rating ? "text-yellow-500" : "text-gray-300"}
-                    fill={n <= rating ? "currentColor" : "none"}
-                  />
+                <button key={n} type="button" onClick={() => setRating(n)} className="focus:outline-none">
+                  <Star size={24} className={n <= rating ? "text-yellow-500" : "text-gray-300"} fill={n <= rating ? "currentColor" : "none"} />
                 </button>
               ))}
             </div>
@@ -446,20 +426,17 @@ export default function ReviewPage() {
 
           {/* Images */}
           <div className="space-y-2">
-            <label className="block font-medium text-gray-700">
-              Upload Gambar (opsional)
-            </label>
+            <label className="block font-medium text-gray-700">Upload Gambar (opsional)</label>
 
             {review?.images?.length > 0 && (
               <div className="grid grid-cols-5 gap-2 mt-2">
                 {review.images.map((img) => (
-                  <div
-                    key={img.idImage}
-                    className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group"
-                  >
+                  <div key={img.idImage} className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group">
                     <Image
                       src={withCacheBuster(img.imageUrl)}
                       alt="old-review-img"
+                      width={96}
+                      height={96}
                       className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                     />
                     <button
@@ -490,13 +467,12 @@ export default function ReviewPage() {
             {images.length > 0 && (
               <div className="grid grid-cols-5 gap-2 mt-2">
                 {images.map((img, idx) => (
-                  <div
-                    key={`new-preview-${idx}`}
-                    className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group"
-                  >
+                  <div key={`new-preview-${idx}`} className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group">
                     <Image
                       src={img.preview}
                       alt={`preview-${idx}`}
+                      width={96}
+                      height={96}
                       className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                     />
                     <button
@@ -528,7 +504,6 @@ export default function ReviewPage() {
           </button>
         </>
       )}
-
     </div>
   );
 }

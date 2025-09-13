@@ -53,7 +53,9 @@ export default function StorePage() {
   useEffect(() => {
     const fetchStore = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/store/${slug}`);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/store/${slug}`
+        );
         const resJson = await res.json();
         if (resJson.status === "success") {
           setStoreData(resJson.data as Store);
@@ -75,7 +77,9 @@ export default function StorePage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/categories`);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/categories`
+        );
         const resJson = await res.json();
         setCategories(resJson.data || []);
       } catch (err) {
@@ -87,42 +91,41 @@ export default function StorePage() {
     fetchCategories();
   }, []);
 
-  // fetch products function
-  const fetchProducts = async (
-    pageParam: number,
-    query: string,
-    categoryId: number | null
-  ) => {
-    setLoadingProducts(true);
-    try {
-      const limit = pageParam === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
-      const categoryParam = categoryId ? `&category=${categoryId}` : "";
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/stores/${slug}/products?page=${pageParam}&limit=${limit}&search=${encodeURIComponent(
-          query
-        )}${categoryParam}`
-      );
-      const data = await res.json();
-
-      if (!data.data || data.data.length === 0) {
-        setHasMore(false);
-        return;
-      }
-
-      setProducts((prev) => {
-        if (pageParam === 1) return data.data as Product[];
-        const combined = [...prev, ...(data.data as Product[])];
-        const unique = Array.from(
-          new Map(combined.map((p) => [p.idProduct, p])).values()
+  // fetch products function (dibungkus useCallback supaya stabil)
+  const fetchProducts = useCallback(
+    async (pageParam: number, query: string, categoryId: number | null) => {
+      setLoadingProducts(true);
+      try {
+        const limit = pageParam === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
+        const categoryParam = categoryId ? `&category=${categoryId}` : "";
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/stores/${slug}/products?page=${pageParam}&limit=${limit}&search=${encodeURIComponent(
+            query
+          )}${categoryParam}`
         );
-        return unique;
-      });
-    } catch (err) {
-      console.error("Gagal fetch produk", err);
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
+        const data = await res.json();
+
+        if (!data.data || data.data.length === 0) {
+          setHasMore(false);
+          return;
+        }
+
+        setProducts((prev) => {
+          if (pageParam === 1) return data.data as Product[];
+          const combined = [...prev, ...(data.data as Product[])];
+          const unique = Array.from(
+            new Map(combined.map((p) => [p.idProduct, p])).values()
+          );
+          return unique;
+        });
+      } catch (err) {
+        console.error("Gagal fetch produk", err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    },
+    [slug] // dependensi supaya tidak berubah-ubah
+  );
 
   // reset products saat search/kategori berubah
   useEffect(() => {
@@ -130,14 +133,14 @@ export default function StorePage() {
     setHasMore(true);
     setProducts([]);
     fetchProducts(1, searchQuery, selectedCategory);
-  }, [searchQuery, selectedCategory, slug]);
+  }, [searchQuery, selectedCategory, slug, fetchProducts]);
 
   // infinite scroll next page
   useEffect(() => {
     if (page > 1) {
       fetchProducts(page, searchQuery, selectedCategory);
     }
-  }, [page, searchQuery, selectedCategory, slug]);
+  }, [page, searchQuery, selectedCategory, slug, fetchProducts]);
 
   const lastProductCallback = useCallback(
     (node: HTMLDivElement | null) => {

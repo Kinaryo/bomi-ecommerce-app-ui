@@ -56,6 +56,12 @@ interface EditStoreProps {
   onSave?: (updatedStore: StoreForm, updatedAddress: AddressForm) => void;
 }
 
+interface ApiResponse<T> {
+  data?: T;
+  message?: string;
+  [key: string]: unknown;
+}
+
 export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
   // ===== State =====
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -93,7 +99,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
   const [storeImage, setStoreImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string>("");
 
-  const authHeaders = {
+  const authHeaders: HeadersInit = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
@@ -117,7 +123,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     const fetchStore = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store`, { headers: authHeaders });
-        const data = await res.json();
+        const data: ApiResponse<{ storeName: string; description: string; latitude: string; longitude: string; imageUrl?: string }> = await res.json();
         if (res.ok && data.data) {
           setStoreForm({
             storeName: data.data.storeName || "",
@@ -135,7 +141,23 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     const fetchAddress = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/origin-address`, { headers: authHeaders });
-        const data = await res.json();
+        const data: ApiResponse<
+          {
+            country?: string;
+            provinces?: Province;
+            cities?: City;
+            districts?: District;
+            subDistricts?: SubDistrict;
+            street?: string;
+            houseNumber?: string;
+            rt?: string;
+            rw?: string;
+            addressLine?: string;
+            longitude?: string;
+            latitude?: string;
+            isPrimary?: boolean;
+          }[]
+        > = await res.json();
         if (res.ok && data.data && data.data.length > 0) {
           const addr = data.data[0];
           setAddressForm({
@@ -169,7 +191,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     setLoadingProvinces(true);
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/province`, { headers: authHeaders })
       .then((res) => res.json())
-      .then((data) => setProvinces(Array.isArray(data.data) ? data.data : []))
+      .then((data: ApiResponse<Province[]>) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
   }, [token, authHeaders]);
@@ -179,7 +201,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     setLoadingCities(true);
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/cities/${addressForm.provinceId}`, { headers: authHeaders })
       .then((res) => res.json())
-      .then((data) => setCities(Array.isArray(data.cities) ? data.cities : []))
+      .then((data: ApiResponse<City[]>) => setCities(Array.isArray(data.data) ? data.data : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
   }, [addressForm.provinceId, token, authHeaders]);
@@ -189,7 +211,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     setLoadingDistricts(true);
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/district/${addressForm.cityId}`, { headers: authHeaders })
       .then((res) => res.json())
-      .then((data) => setDistricts(Array.isArray(data.districts) ? data.districts : []))
+      .then((data: ApiResponse<District[]>) => setDistricts(Array.isArray(data.data) ? data.data : []))
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
   }, [addressForm.cityId, token, authHeaders]);
@@ -199,7 +221,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     setLoadingSubDistricts(true);
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/sub-district/${addressForm.districtId}`, { headers: authHeaders })
       .then((res) => res.json())
-      .then((data) => setSubDistricts(Array.isArray(data.subDistricts) ? data.subDistricts : []))
+      .then((data: ApiResponse<SubDistrict[]>) => setSubDistricts(Array.isArray(data.data) ? data.data : []))
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
   }, [addressForm.districtId, token, authHeaders]);
@@ -301,7 +323,11 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
 
   // ===== UI =====
   return (
-    <motion.div className="max-w-6xl p-4 border-gray-400 shadow-md rounded-md" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div
+      className="max-w-6xl p-4 border-gray-400 shadow-md rounded-md"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
       <button
         onClick={onCancel}
         className="flex items-center px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -330,9 +356,18 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
           />
 
           {/* Select alamat */}
-          <select name="provinceId" value={addressForm.provinceId} onChange={handleAddressChange} className="w-full p-2 border rounded">
+          <select
+            name="provinceId"
+            value={addressForm.provinceId}
+            onChange={handleAddressChange}
+            className="w-full p-2 border rounded"
+          >
             <option value="">{loadingProvinces ? "Loading provinsi..." : "Pilih Provinsi"}</option>
-            {provinces.map((p) => (<option key={p.provinceId} value={p.provinceId}>{p.name}</option>))}
+            {provinces.map((p) => (
+              <option key={p.provinceId} value={p.provinceId}>
+                {p.name}
+              </option>
+            ))}
           </select>
 
           <select
@@ -342,7 +377,9 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
             className="w-full p-2 border rounded"
             disabled={!addressForm.provinceId}
           >
-            <option value="">{!addressForm.provinceId ? "Pilih provinsi dulu" : loadingCities ? "Loading kota..." : "Pilih Kota"}</option>
+            <option value="">
+              {!addressForm.provinceId ? "Pilih provinsi dulu" : loadingCities ? "Loading kota..." : "Pilih Kota"}
+            </option>
             {cities.map((c) => (
               <option key={c.cityId} value={c.cityId}>
                 {c.name}
@@ -378,8 +415,8 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
               {!addressForm.districtId
                 ? "Pilih kecamatan dulu"
                 : loadingSubDistricts
-                  ? "Loading kelurahan..."
-                  : "Pilih Kelurahan/Desa"}
+                ? "Loading kelurahan..."
+                : "Pilih Kelurahan/Desa"}
             </option>
             {subDistricts.map((s) => (
               <option key={s.subDistrictId} value={s.subDistrictId}>
@@ -451,17 +488,38 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
           />
 
           <div className="flex gap-2">
-            <input type="text" value={addressForm.latitude} readOnly className="w-1/2 p-2 border rounded bg-gray-50" />
-            <input type="text" value={addressForm.longitude} readOnly className="w-1/2 p-2 border rounded bg-gray-50" />
+            <input
+              type="text"
+              value={addressForm.latitude}
+              readOnly
+              className="w-1/2 p-2 border rounded bg-gray-50"
+            />
+            <input
+              type="text"
+              value={addressForm.longitude}
+              readOnly
+              className="w-1/2 p-2 border rounded bg-gray-50"
+            />
           </div>
 
           {/* Upload foto */}
           <div>
             <label className="block text-sm font-medium mb-1">Foto Toko</label>
             {previewImage && (
-              <Image src={previewImage} alt="preview" width={400} height={160} className="w-full h-40 object-cover rounded mb-2" />
+              <Image
+                src={previewImage}
+                alt="preview"
+                width={400}
+                height={160}
+                className="w-full h-40 object-cover rounded mb-2"
+              />
             )}
-            <input type="file" accept="image/*" onChange={handleImageChange} className="w-full p-2 border rounded" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full p-2 border rounded"
+            />
           </div>
         </div>
 
