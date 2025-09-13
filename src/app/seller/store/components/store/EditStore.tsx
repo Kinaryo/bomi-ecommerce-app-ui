@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, ArrowLeft } from "lucide-react";
@@ -117,73 +117,73 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     addressForm.longitude;
 
   // ==== Fetch Store & Address ====
-  useEffect(() => {
+  const fetchStore = useCallback(async () => {
     if (!token) return;
-
-    const fetchStore = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store`, { headers: authHeaders });
-        const data: ApiResponse<{ storeName: string; description: string; latitude: string; longitude: string; imageUrl?: string }> = await res.json();
-        if (res.ok && data.data) {
-          setStoreForm({
-            storeName: data.data.storeName || "",
-            description: data.data.description || "",
-            latitude: data.data.latitude || "",
-            longitude: data.data.longitude || "",
-          });
-          if (data.data.imageUrl) setPreviewImage(data.data.imageUrl);
-        }
-      } catch (err) {
-        console.error("Gagal ambil store:", err);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store`, { headers: authHeaders });
+      const data: ApiResponse<{ storeName: string; description: string; latitude: string; longitude: string; imageUrl?: string }> = await res.json();
+      if (res.ok && data.data) {
+        setStoreForm({
+          storeName: data.data.storeName || "",
+          description: data.data.description || "",
+          latitude: data.data.latitude || "",
+          longitude: data.data.longitude || "",
+        });
+        if (data.data.imageUrl) setPreviewImage(data.data.imageUrl);
       }
-    };
+    } catch (err) {
+      console.error("Gagal ambil store:", err);
+    }
+  }, [token]);
 
-    const fetchAddress = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/origin-address`, { headers: authHeaders });
-        const data: ApiResponse<
-          {
-            country?: string;
-            provinces?: Province;
-            cities?: City;
-            districts?: District;
-            subDistricts?: SubDistrict;
-            street?: string;
-            houseNumber?: string;
-            rt?: string;
-            rw?: string;
-            addressLine?: string;
-            longitude?: string;
-            latitude?: string;
-            isPrimary?: boolean;
-          }[]
-        > = await res.json();
-        if (res.ok && data.data && data.data.length > 0) {
-          const addr = data.data[0];
-          setAddressForm({
-            country: addr.country || "Indonesia",
-            provinceId: addr.provinces?.provinceId || "",
-            cityId: addr.cities?.cityId || "",
-            districtId: addr.districts?.districtId || "",
-            subDistrictId: addr.subDistricts?.subDistrictId || "",
-            street: addr.street || "",
-            houseNumber: addr.houseNumber || "",
-            rt: addr.rt || "",
-            rw: addr.rw || "",
-            addressLine: addr.addressLine || "",
-            longitude: addr.longitude || "",
-            latitude: addr.latitude || "",
-            isPrimary: addr.isPrimary ?? true,
-          });
-        }
-      } catch (err) {
-        console.error("Gagal ambil alamat:", err);
+  const fetchAddress = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/origin-address`, { headers: authHeaders });
+      const data: ApiResponse<
+        {
+          country?: string;
+          provinces?: Province;
+          cities?: City;
+          districts?: District;
+          subDistricts?: SubDistrict;
+          street?: string;
+          houseNumber?: string;
+          rt?: string;
+          rw?: string;
+          addressLine?: string;
+          longitude?: string;
+          latitude?: string;
+          isPrimary?: boolean;
+        }[]
+      > = await res.json();
+      if (res.ok && data.data && data.data.length > 0) {
+        const addr = data.data[0];
+        setAddressForm({
+          country: addr.country || "Indonesia",
+          provinceId: addr.provinces?.provinceId || "",
+          cityId: addr.cities?.cityId || "",
+          districtId: addr.districts?.districtId || "",
+          subDistrictId: addr.subDistricts?.subDistrictId || "",
+          street: addr.street || "",
+          houseNumber: addr.houseNumber || "",
+          rt: addr.rt || "",
+          rw: addr.rw || "",
+          addressLine: addr.addressLine || "",
+          longitude: addr.longitude || "",
+          latitude: addr.latitude || "",
+          isPrimary: addr.isPrimary ?? true,
+        });
       }
-    };
+    } catch (err) {
+      console.error("Gagal ambil alamat:", err);
+    }
+  }, [token]);
 
+  useEffect(() => {
     fetchStore();
     fetchAddress();
-  }, [token, authHeaders]);
+  }, [fetchStore, fetchAddress]);
 
   // ===== Fetch Wilayah =====
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<Province[]>) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
-  }, [token, authHeaders]);
+  }, [token]);
 
   useEffect(() => {
     if (!addressForm.provinceId || !token) return;
@@ -204,7 +204,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<City[]>) => setCities(Array.isArray(data.data) ? data.data : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
-  }, [addressForm.provinceId, token, authHeaders]);
+  }, [addressForm.provinceId, token]);
 
   useEffect(() => {
     if (!addressForm.cityId || !token) return;
@@ -214,7 +214,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<District[]>) => setDistricts(Array.isArray(data.data) ? data.data : []))
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
-  }, [addressForm.cityId, token, authHeaders]);
+  }, [addressForm.cityId, token]);
 
   useEffect(() => {
     if (!addressForm.districtId || !token) return;
@@ -224,7 +224,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<SubDistrict[]>) => setSubDistricts(Array.isArray(data.data) ? data.data : []))
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
-  }, [addressForm.districtId, token, authHeaders]);
+  }, [addressForm.districtId, token]);
 
   // ===== Handlers =====
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

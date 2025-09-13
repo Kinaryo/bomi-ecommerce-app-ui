@@ -29,11 +29,22 @@ interface Category {
 interface Store {
   idStore: number;
   nameStore: string;
-  // tambahkan properti lain jika ada di API
 }
 
 interface ProductsTabProps {
   token: string | null;
+}
+
+interface ProductApiResponse {
+  idProduct: number;
+  nameProduct: string;
+  price: number;
+  nameStore: string;
+  primaryImage: string | null;
+  avgRating?: number;
+  totalReviews?: number;
+  sold?: number;
+  idCategory?: number;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -128,7 +139,7 @@ export default function ProductsTab({ token }: ProductsTabProps) {
           return;
         }
 
-        const mappedProducts: Product[] = data.data.map((p: any) => ({
+        const mappedProducts: Product[] = data.data.map((p: ProductApiResponse) => ({
           idProduct: p.idProduct,
           nameProduct: p.nameProduct,
           price: p.price,
