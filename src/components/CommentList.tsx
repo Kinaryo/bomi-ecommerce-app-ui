@@ -1,6 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
+import Image from "next/image";
 
 interface Comment {
   idComment: number;
@@ -26,7 +27,7 @@ export default function CommentList({ data }: { data: Comment[] }) {
             className="w-full md:w-[48%] lg:w-[23%] p-4 rounded-xl bg-gray-50 shadow-sm hover:shadow-md transition-shadow duration-300"
           >
             <div className="flex items-center gap-3 mb-3">
-              <img
+              <Image
                 src={cmt.profileUrl}
                 alt={cmt.userName}
                 className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"

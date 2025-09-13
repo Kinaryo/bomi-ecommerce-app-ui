@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
 
 import OrderDetailPage from "./order/OrderDetailPage";
 import OrderReviewPage from "./order/OrderReviewPage";
@@ -284,7 +285,7 @@ export default function OrdersTab() {
                       key={idx}
                       className="flex items-center gap-4 border-b last:border-0 py-3"
                     >
-                      <img
+                      <Image
                         src={item.productImage}
                         alt={item.productName}
                         className="w-20 h-20 rounded-lg object-cover"

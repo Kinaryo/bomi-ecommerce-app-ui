@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Card, CardBody } from "@nextui-org/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 
 interface ShowCaseItem {
   name: string;
@@ -145,7 +146,7 @@ export default function ShowCase({ data }: { data: ShowCaseItem[] }) {
           </div>
 
           {/* Gambar aktif */}
-          <img
+          <Image
             alt={`Showcase ${currentIndex + 1}`}
             src={data[currentIndex].imageUrl}
             className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none z-10"
@@ -155,7 +156,7 @@ export default function ShowCase({ data }: { data: ShowCaseItem[] }) {
 
           {/* Gambar baru */}
           {nextIndex !== null && (
-            <img
+            <Image
               alt={`Showcase ${nextIndex + 1}`}
               src={data[nextIndex].imageUrl}
               className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none z-10"

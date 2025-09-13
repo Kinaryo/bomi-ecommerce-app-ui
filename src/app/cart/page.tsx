@@ -4,7 +4,11 @@ import { useEffect, useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
+// ======================
+// Types
+// ======================
 type CartItemType = {
   idCartItem: number;
   quantity: number;
@@ -28,6 +32,10 @@ type CartType = {
   grandTotal?: number;
 };
 
+type ApiCartResponse = {
+  data: CartType;
+};
+
 // ======================
 // ItemCard Component
 // ======================
@@ -45,7 +53,6 @@ const ItemCard = memo(
 
     return (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition">
-        {/* Kiri: checkbox + gambar + info produk */}
         <div className="flex items-start sm:items-center gap-3 flex-1">
           <input
             type="checkbox"
@@ -55,18 +62,15 @@ const ItemCard = memo(
             className="mt-1 sm:mt-0"
           />
 
-          <img
+          <Image
             src={item.product.primaryImage}
             alt={item.product.name}
             className="w-16 h-16 object-cover rounded-lg shadow-sm"
           />
 
           <div className="flex-1">
-            <p className="font-medium text-gray-800 break-words">
-              {item.product.name}
-            </p>
+            <p className="font-medium text-gray-800 break-words">{item.product.name}</p>
 
-            {/* Stock info */}
             {item.product.stock === 0 ? (
               <p className="text-sm font-semibold text-red-600">Habis</p>
             ) : item.product.stock <= 2 ? (
@@ -74,9 +78,7 @@ const ItemCard = memo(
                 Stock: {item.product.stock}
               </p>
             ) : (
-              <p className="text-sm text-gray-500">
-                Stock: {item.product.stock}
-              </p>
+              <p className="text-sm text-gray-500">Stock: {item.product.stock}</p>
             )}
 
             <p className="text-sm text-black font-semibold">
@@ -85,26 +87,19 @@ const ItemCard = memo(
           </div>
         </div>
 
-        {/* Kanan: quantity + harga */}
         <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4 sm:justify-end sm:min-w-[200px]">
           <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden shadow-sm w-[110px] justify-between bg-white">
             <button
               disabled={isOutOfStock || item.quantity <= 1}
-              onClick={() =>
-                updateQuantity(storeId, item.idCartItem, item.quantity - 1)
-              }
+              onClick={() => updateQuantity(storeId, item.idCartItem, item.quantity - 1)}
               className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 disabled:opacity-50 transition text-lg font-bold rounded-md"
             >
               −
             </button>
-            <span className="w-8 text-center text-sm font-semibold">
-              {item.quantity}
-            </span>
+            <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
             <button
               disabled={isOutOfStock || item.quantity >= item.product.stock}
-              onClick={() =>
-                updateQuantity(storeId, item.idCartItem, item.quantity + 1)
-              }
+              onClick={() => updateQuantity(storeId, item.idCartItem, item.quantity + 1)}
               className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 disabled:opacity-50 transition text-lg font-bold rounded-md"
             >
               +
@@ -152,13 +147,19 @@ export default function Cart() {
       );
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(JSON.parse(text)?.message || "Gagal fetch keranjang");
+        const message = JSON.parse(text)?.message || "Gagal fetch keranjang";
+        throw new Error(message);
       }
-      const data = await res.json();
+
+      const data: ApiCartResponse = await res.json();
       setCart(data.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error getCart:", err);
-      setError(err.message);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Terjadi kesalahan");
+      }
     } finally {
       setLoading(false);
     }
@@ -180,10 +181,12 @@ export default function Cart() {
       setSelectedItems([item]);
       return;
     }
+
     if (selectedStore !== storeId) {
       Swal.fire("Perhatian", "Hanya bisa memilih produk dari satu toko!", "info");
       return;
     }
+
     if (selectedItems.find((i) => i.idCartItem === item.idCartItem)) {
       const newItems = selectedItems.filter((i) => i.idCartItem !== item.idCartItem);
       setSelectedItems(newItems);
@@ -219,11 +222,10 @@ export default function Cart() {
 
     const store = cart?.stores.find((s) => s.idStore === storeId);
     const item = store?.items.find((i) => i.idCartItem === idCartItem);
-
     if (!item) return;
 
     if (newQty > item.product.stock) {
-      newQty = item.product.stock; // paksa maksimal sesuai stock
+      newQty = item.product.stock;
       Swal.fire(
         "Stok tidak cukup",
         `Stok tersedia hanya ${item.product.stock}`,
@@ -238,21 +240,17 @@ export default function Cart() {
         if (store.idStore !== storeId) return store;
         return {
           ...store,
-          items: store.items.map((i) => {
-            if (i.idCartItem !== idCartItem) return i;
-            return {
-              ...i,
-              quantity: newQty,
-              total: newQty * i.product.price,
-            };
-          }),
+          items: store.items.map((i) =>
+            i.idCartItem !== idCartItem
+              ? i
+              : { ...i, quantity: newQty, total: newQty * i.product.price }
+          ),
         };
       });
 
       return { ...prevCart, stores: updatedStores };
     });
 
-    // update selectedItems
     setSelectedItems((prevSelected) =>
       prevSelected.map((i) =>
         i.idCartItem === idCartItem
@@ -261,7 +259,6 @@ export default function Cart() {
       )
     );
 
-    // API patch
     if (token) {
       fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/update-cart-item/${idCartItem}`,
@@ -273,7 +270,9 @@ export default function Cart() {
           },
           body: JSON.stringify({ quantity: newQty }),
         }
-      ).catch((err) => console.error("Error update quantity:", err));
+      ).catch((err: unknown) => {
+        if (err instanceof Error) console.error("Error update quantity:", err.message);
+      });
     }
   };
 
@@ -304,22 +303,13 @@ export default function Cart() {
 
   return (
     <div className="mx-auto p-6 space-y-6 mt-20 mb-20">
-      {/* Header selalu tampil */}
       <h1 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
         Keranjang Saya
       </h1>
 
-      {/* Jika error */}
-      {error && (
-        <div className="text-center text-red-500 mt-10">{error}</div>
-      )}
+      {error && <div className="text-center text-red-500 mt-10">{error}</div>}
+      {loading && <div className="p-6 text-gray-700 text-center">Memuat keranjang...</div>}
 
-      {/* Jika loading */}
-      {loading && (
-        <div className="p-6 text-gray-700 text-center">Memuat keranjang...</div>
-      )}
-
-      {/* Jika keranjang kosong */}
       {!loading && !error && (!cart || !cart.stores || cart.stores.length === 0) && (
         <div className="flex flex-col items-center justify-center mt-10">
           <p className="text-sx p-2 border border-gray-300 shadow-sm rounded-md">
@@ -328,83 +318,78 @@ export default function Cart() {
         </div>
       )}
 
-      {/* Jika ada cart */}
-      {!loading && !error && cart && cart.stores && cart.stores.length > 0 && (
-        <>
-          {cart.stores.map((store) => {
-            const allChecked =
-              selectedStore === store.idStore &&
-              store.items.every((i) =>
-                selectedItems.some((si) => si.idCartItem === i.idCartItem)
+      {!loading &&
+        !error &&
+        cart &&
+        cart.stores &&
+        cart.stores.length > 0 && (
+          <>
+            {cart.stores.map((store) => {
+              const allChecked =
+                selectedStore === store.idStore &&
+                store.items.every((i) =>
+                  selectedItems.some((si) => si.idCartItem === i.idCartItem)
+                );
+
+              return (
+                <div key={store.idStore} className="bg-white rounded-xl shadow-lg p-5 space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={allChecked}
+                      onChange={() => toggleSelectAll(store)}
+                    />
+                    <h2 className="text-xl font-semibold text-gray-800">{store.storeName}</h2>
+                  </div>
+
+                  {store.items.map((item) => (
+                    <ItemCard
+                      key={item.idCartItem}
+                      item={item}
+                      storeId={store.idStore}
+                      isChecked={selectedItems.some(
+                        (i) => i.idCartItem === item.idCartItem
+                      )}
+                      toggleSelect={toggleSelect}
+                      updateQuantity={updateQuantity}
+                    />
+                  ))}
+
+                  <div className="flex justify-between items-center font-semibold text-black text-lg">
+                    <span>Subtotal</span>
+                    <span>
+                      Rp
+                      {store.items.reduce((s, i) => s + i.total, 0).toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
               );
+            })}
 
-            return (
-              <div
-                key={store.idStore}
-                className="bg-white rounded-xl shadow-lg p-5 space-y-4"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <input
-                    type="checkbox"
-                    checked={allChecked}
-                    onChange={() => toggleSelectAll(store)}
-                  />
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    {store.storeName}
-                  </h2>
-                </div>
-
-                {store.items.map((item) => (
-                  <ItemCard
-                    key={item.idCartItem}
-                    item={item}
-                    storeId={store.idStore}
-                    isChecked={selectedItems.some(
-                      (i) => i.idCartItem === item.idCartItem
-                    )}
-                    toggleSelect={toggleSelect}
-                    updateQuantity={updateQuantity}
-                  />
-                ))}
-
-                <div className="flex justify-between items-center font-semibold text-black text-lg">
-                  <span>Subtotal</span>
-                  <span>
-                    Rp
-                    {store.items
-                      .reduce((s, i) => s + i.total, 0)
-                      .toLocaleString("id-ID")}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Checkout Floating Bar */}
-          <AnimatePresence>
-            {selectedItems.length > 0 && (
-              <motion.div
-                className="fixed bottom-0 left-0 w-full bg-white p-4 shadow-xl z-50 rounded-t-xl"
-                initial={{ y: 100 }}
-                animate={{ y: 0 }}
-                exit={{ y: 100 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              >
-                <div className="flex justify-between items-center font-semibold text-black mb-3 text-lg">
-                  <span>Total Produk Dipilih</span>
-                  <span>Rp{checkoutTotal.toLocaleString("id-ID")}</span>
-                </div>
-                <button
-                  onClick={handleCheckout}
-                  className="w-full bg-blue-400 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition"
+            <AnimatePresence>
+              {selectedItems.length > 0 && (
+                <motion.div
+                  className="fixed bottom-0 left-0 w-full bg-white p-4 shadow-xl z-50 rounded-t-xl"
+                  initial={{ y: 100 }}
+                  animate={{ y: 0 }}
+                  exit={{ y: 100 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 >
-                  Checkout ({selectedItems.length} produk)
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      )}
+                  <div className="flex justify-between items-center font-semibold text-black mb-3 text-lg">
+                    <span>Total Produk Dipilih</span>
+                    <span>Rp{checkoutTotal.toLocaleString("id-ID")}</span>
+                  </div>
+                  <button
+                    onClick={handleCheckout}
+                    className="w-full bg-blue-400 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition"
+                  >
+                    Checkout ({selectedItems.length} produk)
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
     </div>
   );
 }

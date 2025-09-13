@@ -6,7 +6,8 @@ import StarRating from "./StarRating";
 import ReviewList from "./ReviewList";
 import Swal from "sweetalert2";
 import { Camera, Trash2, Plus, Star } from "lucide-react";
-import EditProductModal from "./EditProductModal"; // import modal
+import EditProductModal from "./EditProductModal";
+import Image from "next/image";
 
 interface ProductDetailProps {
   idProduct: string;
@@ -244,7 +245,7 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
                 >
                   {img ? (
                     <>
-                      <img
+                      <Image
                         src={img.imageUrl!}
                         alt={`Product ${idx + 1}`}
                         className="w-full h-full object-cover rounded-lg"

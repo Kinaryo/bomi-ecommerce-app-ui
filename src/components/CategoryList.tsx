@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
+import Image from "next/image";
 
 interface Category {
   idCategory: number;
@@ -50,7 +51,7 @@ export default function CategoryList({ data }: { data?: Category[] }) {
             }}
           >
             <CardBody className="p-0 flex justify-center items-center">
-              <img
+              <Image
                 src={category.categoryImageUrl || "/fallback.jpg"}
                 alt={category.name}
                 className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 object-cover rounded-full border border-gray-200 shadow-sm"

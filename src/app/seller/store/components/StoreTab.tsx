@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Loader2, Camera, Trash2, ChevronRight } from "lucide-react";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 import EditStore from "./store/EditStore"; // komponen edit toko
 const ProfileMap = dynamic(() => import("./store/Map"), { ssr: false });
@@ -183,7 +184,7 @@ export default function StoreTab({ token }: StoreTabProps) {
         <div className="w-full flex justify-center">
           <div className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden bg-gray-100">
             {store.imageUrl ? (
-              <img
+              <Image
                 src={store.imageUrl}
                 alt={store.storeName}
                 className={`w-full h-full object-cover ${updatingImage ? "opacity-50" : ""}`}

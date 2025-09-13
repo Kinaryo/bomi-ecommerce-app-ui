@@ -1,6 +1,7 @@
 import Image from "next/image";
 import StarRating from "./StarRating";
 
+
 interface Review {
   name: string;
   profileImageUrl?: string;
@@ -19,7 +20,8 @@ export default function ReviewList({ reviews }: { reviews: Review[] }) {
           reviews.map((review, index) => (
             <div key={index} className="p-4 bg-gray-50 rounded-lg shadow ">
               <div className="flex items-center gap-3">
-                <img src={review.profileImageUrl}
+                <Image
+                  src={review.profileImageUrl}
                   alt={review.name}
                   width={40}
                   height={40}

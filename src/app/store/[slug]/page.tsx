@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import StoreProducts from "../components/StoreProducts";
 import StarRating from "../components/StarRating";
+import Image from "next/image";
 
 interface Product {
   idProduct: number;
@@ -160,7 +161,7 @@ export default function StorePage() {
     <div className="max-w-6xl mx-auto p-6 space-y-8 mt-20 bg-white rounded-lg shadow">
       {/* Header */}
       <div className="flex items-center gap-6 border p-6 rounded-md shadow-md bg-gray-50">
-        <img
+        <Image
           src={storeData.storeImageUrl || "/placeholder-store.jpg"}
           alt={storeData.storeName}
           width={120}
@@ -197,7 +198,7 @@ export default function StorePage() {
               }
             >
               <div className="w-12 h-12 rounded-full overflow-hidden border flex-shrink-0">
-                <img
+                <Image
                   src={cat.imageCategoryUrl || "/no-category.png"}
                   alt={cat.name}
                   className="w-full h-full object-cover"

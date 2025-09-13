@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Product {
   idProduct: number;
@@ -33,7 +34,7 @@ export default function ProductList({ data }: { data: Product[] }) {
           >
             {/* Gambar Produk */}
             <div className="relative aspect-[4/3] overflow-hidden">
-              <img
+              <Image
                 src={product.primaryImage || "/fallback.jpg"}
                 alt={product.nameProduct}
                 className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"

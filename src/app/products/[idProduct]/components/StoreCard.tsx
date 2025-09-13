@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import StarRating from "./StarRating";
+import Image from "next/image";
 
 interface StoreCardProps {
   storeSlug: string;   // 🔹 pakai slug, bukan id
@@ -25,7 +26,7 @@ export default function StoreCard({
       className="flex items-center justify-between gap-4 p-6 rounded-md border-gray-400 shadow-md hover:bg-gray-50 transition"
     >
       <div className="flex items-center gap-4">
-        <img
+        <Image
           src={storeImageUrl || "/placeholder-store.jpg"}
           alt={storeName}
           width={80}

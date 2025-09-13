@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
 interface Category {
   idCategory: number;
@@ -270,7 +271,7 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
         <div className="flex gap-2 mt-2 flex-wrap">
           {images.map((img, idx) => (
             <div key={idx} className="relative">
-              <img
+              <Image
                 src={URL.createObjectURL(img)}
                 alt={img.name}
                 className="w-24 h-24 object-cover rounded border"

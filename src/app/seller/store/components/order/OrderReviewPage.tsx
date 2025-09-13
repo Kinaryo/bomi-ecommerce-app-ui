@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Star, Edit, Trash2, Send } from "lucide-react";
+import Image from "next/image";
 
 interface ReviewImage {
   idImage: number;
@@ -236,7 +237,7 @@ export default function OrderReviewPage({
             {review.images?.length > 0 && (
               <div className="flex gap-2 overflow-x-auto mt-3">
                 {review.images.map((img) => (
-                  <img
+                  <Image
                     key={img.idImage}
                     src={img.imageUrl}
                     alt="review-img"

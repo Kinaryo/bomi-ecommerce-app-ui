@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, ArrowLeft } from "lucide-react";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
 const MapPicker = dynamic(() => import("./mapPicker"), { ssr: false });
 
@@ -417,7 +418,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
           <div>
             <label className="block text-sm font-medium mb-1">Foto Toko</label>
             {previewImage && (
-              <img src={previewImage} alt="preview" className="w-full h-40 object-cover rounded mb-2" />
+              <Image src={previewImage} alt="preview" className="w-full h-40 object-cover rounded mb-2" />
             )}
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full p-2 border rounded" />
           </div>

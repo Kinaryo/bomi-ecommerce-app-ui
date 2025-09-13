@@ -7,6 +7,7 @@ import ProductDetail from "./product/ProductDetailTab";
 import AddProductForm from "./product/AddProductForm";
 import Swal from "sweetalert2";
 import SearchBar from "../components/product/SearchBar";
+import Image from "next/image";
 
 interface Product {
   idProduct: number;
@@ -332,7 +333,7 @@ export default function ProductsTab({ token }: ProductsTabProps) {
             }
           >
             <div className="w-12 h-12 rounded-full overflow-hidden border flex-shrink-0">
-              <img
+              <Image
                 src={cat.imageCategoryUrl || "/no-category.png"}
                 alt={cat.name}
                 className="w-full h-full object-cover"
@@ -359,7 +360,7 @@ export default function ProductsTab({ token }: ProductsTabProps) {
             >
               {/* Image */}
               <div className="relative aspect-[4/3] overflow-hidden">
-                <img
+                <Image
                   src={product.primaryImage || "/no-image.png"}
                   alt={product.nameProduct}
                   className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"

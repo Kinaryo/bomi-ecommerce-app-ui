@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { ArrowLeft, Store } from "lucide-react";
-
+import Image from "next/image";
 declare global {
   interface Window {
     snap: any;
@@ -272,7 +272,7 @@ export default function OrderDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
             {order.items.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center gap-4 pb-2 hover:bg-gray-50 rounded-lg transition">
-                <img
+                <Image
                   src={item.productImage}
                   alt={item.productName}
                   className="w-20 h-20 rounded-lg object-cover"

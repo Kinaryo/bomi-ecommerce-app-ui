@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Store } from "lucide-react";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
 declare global {
   interface Window {
@@ -256,7 +257,7 @@ export default function OrderPage() {
                   className="flex items-center gap-4 border-b last:border-0 py-3"
                 >
                   {/* Gambar di kiri */}
-                  <img
+                  <Image
                     src={item.productImage}
                     alt={item.productName}
                     className="w-20 h-20 rounded-lg object-cover"

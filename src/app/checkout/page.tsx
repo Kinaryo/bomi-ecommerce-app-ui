@@ -11,6 +11,7 @@ import {
   StickyNote,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
 export default function CheckoutPaymentPage() {
   const searchParams = useSearchParams();
@@ -301,7 +302,7 @@ const fetchCheckout = async () => {
               key={p.idProduct}
               className="flex items-center py-3 border-gray-400 shadow-md rounded-b-sm p-4"
             >
-              <img
+              <Image
                 src={p.imageUrl}
                 alt={p.name}
                 className="w-16 h-16 rounded-lg object-cover mr-4"

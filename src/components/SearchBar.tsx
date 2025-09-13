@@ -1,4 +1,5 @@
 "use client";
+
 import { Search } from "lucide-react";
 import { useState, ChangeEvent, KeyboardEvent } from "react";
 
@@ -7,7 +8,7 @@ interface SearchBarProps {
   onSearch: (value: string) => void;
 }
 
-const SearchBar = ({ value, onSearch }: SearchBarProps) => {
+export default function SearchBar({ value, onSearch }: SearchBarProps) {
   const [inputValue, setInputValue] = useState(value);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -41,6 +42,4 @@ const SearchBar = ({ value, onSearch }: SearchBarProps) => {
       </button>
     </div>
   );
-};
-
-export default SearchBar;
+}

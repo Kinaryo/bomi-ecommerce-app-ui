@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import OrderReviewPage from "./OrderReviewPage"; // ⬅️ import komponen review
+import OrderReviewPage from "./OrderReviewPage"; 
+import Image from "next/image";
 
 declare global {
   interface Window {
@@ -134,7 +135,7 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             {order.items.map((item: any, idx: number) => (
               <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 p-2 hover:bg-gray-50 rounded-lg transition">
-                <img
+                <Image
                   src={item.productImage}
                   alt={item.productName}
                   className="w-24 h-24 rounded-lg object-cover"

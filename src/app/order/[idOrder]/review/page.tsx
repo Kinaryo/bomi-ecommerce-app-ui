@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Star, X, Edit3, Trash2, ArrowLeft } from "lucide-react";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
 interface ReviewImage {
   idImage: number;
@@ -360,7 +361,7 @@ export default function ReviewPage() {
               <div className="flex gap-2 overflow-x-auto mt-2">
                 {review.images.map((img) => (
                   <div key={img.idImage}>
-                    <img
+                    <Image
                       src={withCacheBuster(img.imageUrl)}
                       alt="review-img"
                       className="w-24 h-24 object-cover rounded-lg border"
@@ -377,7 +378,7 @@ export default function ReviewPage() {
                     key={reply.idReply}
                     className="flex gap-3 bg-gray-50 p-3 rounded-lg border-l-4 border-blue-400"
                   >
-                    <img
+                    <Image
                       src={
                         reply.seller?.profileImageUrl ||
                         "https://via.placeholder.com/40x40.png?text=S"
@@ -455,7 +456,7 @@ export default function ReviewPage() {
                     key={img.idImage}
                     className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group"
                   >
-                    <img
+                    <Image
                       src={withCacheBuster(img.imageUrl)}
                       alt="old-review-img"
                       className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
@@ -492,7 +493,7 @@ export default function ReviewPage() {
                     key={`new-preview-${idx}`}
                     className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group"
                   >
-                    <img
+                    <Image
                       src={img.preview}
                       alt={`preview-${idx}`}
                       className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
