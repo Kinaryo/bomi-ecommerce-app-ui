@@ -195,7 +195,7 @@ export default function ReviewPage() {
       if (data.status === "success") {
         setReview((prev) =>
           prev
-            ? { ...prev, images: prev.images.filter((img) => img.idImage !== idImage) }
+            ? { ...prev, images: (prev.images ?? []).filter((img) => img.idImage !== idImage) }
             : prev
         );
         await fetchReview();
@@ -346,9 +346,9 @@ export default function ReviewPage() {
 
             <p className="text-gray-700 mb-2">{review.comment}</p>
 
-            {review.images?.length > 0 && (
+            {(review.images ?? []).length > 0 && (
               <div className="flex gap-2 overflow-x-auto mt-2">
-                {review.images.map((img) => (
+                {(review.images ?? []).map((img) => (
                   <div key={img.idImage}>
                     <Image
                       src={withCacheBuster(img.imageUrl)}
@@ -429,9 +429,9 @@ export default function ReviewPage() {
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">Upload Gambar (opsional)</label>
 
-            {review?.images?.length > 0 && (
+            {(review?.images ?? []).length > 0 && (
               <div className="grid grid-cols-5 gap-2 mt-2">
-                {review.images.map((img) => (
+                {(review?.images ?? []).map((img) => (
                   <div key={img.idImage} className="relative w-full h-24 rounded overflow-hidden border border-gray-300 group">
                     <Image
                       src={withCacheBuster(img.imageUrl)}
