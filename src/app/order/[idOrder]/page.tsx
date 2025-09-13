@@ -1,26 +1,10 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { ArrowLeft, Store } from "lucide-react";
 import Image from "next/image";
-
-declare global {
-  interface Window {
-    snap?: {
-      pay: (
-        token: string,
-        callbacks: {
-          onSuccess: () => void;
-          onPending: () => void;
-          onError: () => void;
-          onClose: () => void;
-        }
-      ) => void;
-    };
-  }
-}
 
 type OrderItem = {
   idProduct: number;
@@ -95,11 +79,14 @@ export default function OrderDetailPage() {
 
   // load snap js
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
-    script.setAttribute("data-client-key", process.env.NEXT_PUBLIC_NEXT_PUBLIC_MIDTRANS_CLIENT_KEY!);
-    script.async = true;
-    document.body.appendChild(script);
+    if (!document.getElementById("snap-script")) {
+      const script = document.createElement("script");
+      script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+      script.setAttribute("data-client-key", process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY!);
+      script.async = true;
+      script.id = "snap-script";
+      document.body.appendChild(script);
+    }
   }, []);
 
   // fetch order detail
@@ -174,7 +161,7 @@ export default function OrderDetailPage() {
     }
     setPaying(true);
 
-    window.snap.pay(order.paymentToken, {
+    window.snap?.pay(order.paymentToken, {
       onSuccess: () => {
         Swal.fire("Sukses", "Pembayaran berhasil!", "success");
         setOrder((prev) => (prev ? { ...prev, paymentStatus: "paid" } : prev));
@@ -260,7 +247,7 @@ export default function OrderDetailPage() {
   const canPay = CANCELABLE_STATUSES.includes(order.orderStatus) && !!order.paymentToken;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 mt-20">
+   <div className="p-6 max-w-4xl mx-auto space-y-6 mt-20">
       <h1 className="flex items-center justify-center gap-2 text-3xl font-extrabold text-gray-800 mb-8">
         Rincian Order
       </h1>

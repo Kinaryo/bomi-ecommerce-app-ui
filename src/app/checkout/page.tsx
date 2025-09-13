@@ -51,21 +51,6 @@ interface ShippingOption {
   courier?: string;
 }
 
-// === untuk typing window.snap ===
-interface SnapWindow extends Window {
-  snap?: {
-    pay: (
-      token: string | undefined,
-      callbacks: {
-        onSuccess?: () => void;
-        onPending?: () => void;
-        onError?: () => void;
-        onClose?: () => void;
-      }
-    ) => void;
-  };
-}
-
 export default function CheckoutPaymentPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -268,39 +253,36 @@ export default function CheckoutPaymentPage() {
 
       await loadSnapScript();
 
-      const snapWindow = window as SnapWindow;
-      if (snapWindow.snap) {
-        showLoading('Membuka Popup Pembayaran...');
-        snapWindow.snap.pay(data.paymentToken, {
-          onSuccess: () => {
-            closeLoading();
-            showAlert('Sukses', 'Pembayaran berhasil!', 'success', () =>
-              (window.location.href = '/order'),
-            );
-          },
-          onPending: () => {
-            closeLoading();
-            showAlert('Pending', 'Pembayaran menunggu konfirmasi.', 'info', () =>
-              (window.location.href = '/order'),
-            );
-          },
-          onError: () => {
-            closeLoading();
-            showAlert('Error', 'Pembayaran gagal.', 'error', () =>
-              (window.location.href = '/order'),
-            );
-          },
-          onClose: () => {
-            closeLoading();
-            showAlert(
-              'Dibatalkan',
-              'User menutup popup pembayaran.',
-              'warning',
-              () => (window.location.href = '/order'),
-            );
-          },
-        });
-      }
+      // Langsung pakai window.snap tanpa interface tambahan
+      window.snap?.pay(data.paymentToken, {
+        onSuccess: () => {
+          closeLoading();
+          showAlert('Sukses', 'Pembayaran berhasil!', 'success', () =>
+            (window.location.href = '/order'),
+          );
+        },
+        onPending: () => {
+          closeLoading();
+          showAlert('Pending', 'Pembayaran menunggu konfirmasi.', 'info', () =>
+            (window.location.href = '/order'),
+          );
+        },
+        onError: () => {
+          closeLoading();
+          showAlert('Error', 'Pembayaran gagal.', 'error', () =>
+            (window.location.href = '/order'),
+          );
+        },
+        onClose: () => {
+          closeLoading();
+          showAlert(
+            'Dibatalkan',
+            'User menutup popup pembayaran.',
+            'warning',
+            () => (window.location.href = '/order'),
+          );
+        },
+      });
     } catch (err) {
       closeLoading();
       showAlert('Error', (err as Error).message, 'error');
