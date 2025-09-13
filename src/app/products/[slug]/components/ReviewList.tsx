@@ -5,6 +5,7 @@ import StarRating from "./StarRating";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 
+// ================== Interfaces ==================
 interface ReviewImage {
   idImage: number;
   imageUrl: string;
@@ -31,12 +32,8 @@ interface Review {
   replies?: SellerReply[];
 }
 
-interface ReviewListProps {
-  reviews: Review[];
-  slugProduct: string;
-}
-
-export default function ReviewList({ reviews, slugProduct }: ReviewListProps) {
+// ================== Component ==================
+export default function ReviewList({ reviews, slugProduct }: { reviews: Review[]; slugProduct: string }) {
   const router = useRouter();
 
   const handleSeeAllReviews = () => {
