@@ -55,7 +55,7 @@ interface ShippingOption {
 interface SnapWindow extends Window {
   snap?: {
     pay: (
-      token: string,
+      token: string | undefined,
       callbacks: {
         onSuccess?: () => void;
         onPending?: () => void;
