@@ -4,11 +4,29 @@ import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { X } from "lucide-react";
 
+interface Category {
+  idCategory: number;
+  name: string;
+}
+
+interface ProductForm {
+  idCategory: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  status: string;
+  weight: number;
+  length: string;
+  width: string;
+  height: string;
+}
+
 interface EditProductModalProps {
   token: string | null;
   productId: number | null;
   onClose: () => void;
-  onUpdate: (updatedData: any) => void;
+  onUpdate: (updatedData: ProductForm) => void; // ubah dari any jadi ProductForm
 }
 
 export default function EditProductModal({
@@ -17,7 +35,7 @@ export default function EditProductModal({
   onClose,
   onUpdate,
 }: EditProductModalProps) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProductForm>({
     idCategory: "",
     name: "",
     description: "",
@@ -30,9 +48,7 @@ export default function EditProductModal({
     height: "",
   });
 
-  const [categories, setCategories] = useState<
-    { idCategory: number; name: string }[]
-  >([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [busy, setBusy] = useState(false);
 
   // format angka jadi ribuan
@@ -85,7 +101,7 @@ export default function EditProductModal({
             "error"
           );
         }
-      } catch (err) {
+      } catch {
         Swal.close();
         Swal.fire("Error", "Terjadi kesalahan saat ambil data produk", "error");
       }
@@ -125,7 +141,7 @@ export default function EditProductModal({
 
       if (resJson.status === "success") {
         Swal.fire("Berhasil", "Produk berhasil diperbarui", "success");
-        onUpdate(resJson.data);
+        onUpdate(resJson.data as ProductForm);
         onClose();
       } else {
         Swal.fire(
@@ -134,8 +150,7 @@ export default function EditProductModal({
           "error"
         );
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       Swal.close();
       Swal.fire("Error", "Terjadi kesalahan saat memperbarui produk", "error");
     } finally {

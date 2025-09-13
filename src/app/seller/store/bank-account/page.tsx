@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";       // ✅ untuk navigasi balik
-import { ArrowLeft } from "lucide-react";          // ✅ ikon panah
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import Swal from "sweetalert2";
 
 type BankAccount = {
@@ -22,25 +22,13 @@ export default function BankAccountPage() {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const router = useRouter();
 
-  // tombol kembali
   const handleBackToList = () => {
     router.push("/seller/store");
   };
 
-  useEffect(() => {
-    if (!token) {
-      Swal.fire({
-        icon: "warning",
-        title: "Belum Login",
-        text: "Silakan login untuk mengakses halaman bank account.",
-        confirmButtonText: "Login",
-      }).then(() => (window.location.href = "/login"));
-      return;
-    }
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  // bungkus fetchData pakai useCallback supaya tidak berubah-ubah
+  const fetchData = useCallback(async () => {
+    if (!token) return;
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/bank-accounts`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -71,7 +59,20 @@ export default function BankAccountPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]); // dependensi token supaya lint aman
+
+  useEffect(() => {
+    if (!token) {
+      Swal.fire({
+        icon: "warning",
+        title: "Belum Login",
+        text: "Silakan login untuk mengakses halaman bank account.",
+        confirmButtonText: "Login",
+      }).then(() => (window.location.href = "/login"));
+      return;
+    }
+    fetchData();
+  }, [fetchData, token]); // dependensi fetchData & token supaya lint aman
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +119,7 @@ export default function BankAccountPage() {
   const handleEditMode = () => setFormDisabled(false);
 
   const handleCancel = () => {
-    fetchData(); // reload data dan disable kembali
+    fetchData();
   };
 
   const handleDelete = async () => {
@@ -157,7 +158,6 @@ export default function BankAccountPage() {
     <div className="p-6 md:p-10 mt-20 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 justify-center items-center flex">Bank Account</h1>
 
-      {/* tombol kembali */}
       <button
         onClick={handleBackToList}
         className="flex items-center gap-2 px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition shadow-sm mb-6"
@@ -207,7 +207,6 @@ export default function BankAccountPage() {
           />
         </div>
 
-        {/* tombol sesuai mode */}
         {formDisabled ? (
           <div className="flex gap-2 justify-end">
             <button

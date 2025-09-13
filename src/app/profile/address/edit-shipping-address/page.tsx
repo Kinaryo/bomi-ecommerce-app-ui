@@ -11,7 +11,40 @@ const MapPicker = dynamic(() => import("../components/mapPicker"), {
   ssr: false,
 });
 
-// 🔹 helper untuk parse response (tidak double-read)
+interface Province {
+  provinceId: string;
+  name: string;
+}
+interface City {
+  cityId: string;
+  name: string;
+}
+interface District {
+  districtId: string;
+  name: string;
+}
+interface SubDistrict {
+  subDistrictId: string;
+  name: string;
+}
+
+interface ShippingAddress {
+  idShippingAddress: number;
+  country: string;
+  provinces?: { provinceId: string };
+  cities?: { cityId: string };
+  districts?: { districtId: string };
+  subDistricts?: { subDistrictId: string };
+  street: string;
+  houseNumber: string;
+  rt: string;
+  rw: string;
+  addressLine: string;
+  longitude: string;
+  latitude: string;
+  isPrimary: boolean;
+}
+
 const parseResponse = async (res: Response) => {
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
@@ -21,10 +54,10 @@ const parseResponse = async (res: Response) => {
 };
 
 export default function EditShippingAddress() {
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [subDistricts, setSubDistricts] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
   const [loading, setLoading] = useState(true);
   const [addressId, setAddressId] = useState<number | null>(null);
   const router = useRouter();
@@ -56,16 +89,16 @@ export default function EditShippingAddress() {
 
   const isFormValid = Boolean(
     form.provinceId &&
-    form.cityId &&
-    form.districtId &&
-    form.subDistrictId &&
-    form.street &&
-    form.houseNumber &&
-    form.rt &&
-    form.rw &&
-    form.addressLine &&
-    form.latitude &&
-    form.longitude
+      form.cityId &&
+      form.districtId &&
+      form.subDistrictId &&
+      form.street &&
+      form.houseNumber &&
+      form.rt &&
+      form.rw &&
+      form.addressLine &&
+      form.latitude &&
+      form.longitude
   );
 
   // ambil alamat user
@@ -75,7 +108,7 @@ export default function EditShippingAddress() {
       headers: authHeaders,
     })
       .then(parseResponse)
-      .then((data: any) => {
+      .then((data: { data: ShippingAddress[] }) => {
         if (Array.isArray(data?.data) && data.data.length > 0) {
           const alamat = data.data[0];
           setAddressId(alamat.idShippingAddress);
@@ -96,15 +129,16 @@ export default function EditShippingAddress() {
           });
         }
       })
-      .catch((err) =>
+      .catch((err: unknown) =>
         Swal.fire({
           icon: "error",
           title: "Gagal Memuat",
-          text: err.message || "Terjadi error saat mengambil alamat",
+          text:
+            (err as Error).message || "Terjadi error saat mengambil alamat",
         })
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [authHeaders]);
 
   // fetch province
   useEffect(() => {
@@ -112,11 +146,11 @@ export default function EditShippingAddress() {
       headers: authHeaders,
     })
       .then(parseResponse)
-      .then((data: any) => setProvinces(data.data || []))
-      .catch((err) =>
-        Swal.fire({ icon: "error", title: "Error", text: err.message })
+      .then((data: { data: Province[] }) => setProvinces(data.data || []))
+      .catch((err: unknown) =>
+        Swal.fire({ icon: "error", title: "Error", text: (err as Error).message })
       );
-  }, []);
+  }, [authHeaders]);
 
   // fetch cities
   useEffect(() => {
@@ -126,9 +160,9 @@ export default function EditShippingAddress() {
       { headers: authHeaders }
     )
       .then(parseResponse)
-      .then((data: any) => setCities(data.cities || []))
-      .catch((err) =>
-        Swal.fire({ icon: "error", title: "Error", text: err.message })
+      .then((data: { cities: City[] }) => setCities(data.cities || []))
+      .catch((err: unknown) =>
+        Swal.fire({ icon: "error", title: "Error", text: (err as Error).message })
       );
 
     if (!isInitialLoad.current) {
@@ -140,7 +174,7 @@ export default function EditShippingAddress() {
         subDistrictId: "",
       }));
     }
-  }, [form.provinceId]);
+  }, [form.provinceId, authHeaders]);
 
   // fetch districts
   useEffect(() => {
@@ -150,9 +184,9 @@ export default function EditShippingAddress() {
       { headers: authHeaders }
     )
       .then(parseResponse)
-      .then((data: any) => setDistricts(data.districts || []))
-      .catch((err) =>
-        Swal.fire({ icon: "error", title: "Error", text: err.message })
+      .then((data: { districts: District[] }) => setDistricts(data.districts || []))
+      .catch((err: unknown) =>
+        Swal.fire({ icon: "error", title: "Error", text: (err as Error).message })
       );
 
     if (!isInitialLoad.current) {
@@ -160,7 +194,7 @@ export default function EditShippingAddress() {
       setSubDistricts([]);
       setForm((prev) => ({ ...prev, districtId: "", subDistrictId: "" }));
     }
-  }, [form.cityId]);
+  }, [form.cityId, authHeaders]);
 
   // fetch subdistricts
   useEffect(() => {
@@ -170,9 +204,11 @@ export default function EditShippingAddress() {
       { headers: authHeaders }
     )
       .then(parseResponse)
-      .then((data: any) => setSubDistricts(data.subDistricts || []))
-      .catch((err) =>
-        Swal.fire({ icon: "error", title: "Error", text: err.message })
+      .then((data: { subDistricts: SubDistrict[] }) =>
+        setSubDistricts(data.subDistricts || [])
+      )
+      .catch((err: unknown) =>
+        Swal.fire({ icon: "error", title: "Error", text: (err as Error).message })
       );
 
     if (!isInitialLoad.current) {
@@ -180,7 +216,7 @@ export default function EditShippingAddress() {
       setForm((prev) => ({ ...prev, subDistrictId: "" }));
     }
     isInitialLoad.current = false;
-  }, [form.districtId]);
+  }, [form.districtId, authHeaders]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -222,14 +258,14 @@ export default function EditShippingAddress() {
         Swal.fire({
           icon: "error",
           title: "Gagal!",
-          text: (result as any)?.message || "Gagal mengupdate alamat.",
+          text: (result as { message?: string })?.message || "Gagal mengupdate alamat.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       Swal.fire({
         icon: "error",
         title: "Terjadi Kesalahan",
-        text: err.message || "Silakan coba lagi nanti.",
+        text: (err as Error).message || "Silakan coba lagi nanti.",
       });
     }
   };
@@ -252,9 +288,8 @@ export default function EditShippingAddress() {
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
       >
-        {/* Kiri */}
+        {/* kiri */}
         <div className="space-y-3">
-          {/* Select province */}
           <select
             name="provinceId"
             value={form.provinceId}
@@ -269,7 +304,6 @@ export default function EditShippingAddress() {
             ))}
           </select>
 
-          {/* Select city */}
           <select
             name="cityId"
             value={form.cityId}
@@ -287,7 +321,6 @@ export default function EditShippingAddress() {
             ))}
           </select>
 
-          {/* Select district */}
           <select
             name="districtId"
             value={form.districtId}
@@ -307,7 +340,6 @@ export default function EditShippingAddress() {
             ))}
           </select>
 
-          {/* Select sub-district */}
           <select
             name="subDistrictId"
             value={form.subDistrictId}
@@ -327,7 +359,6 @@ export default function EditShippingAddress() {
             ))}
           </select>
 
-          {/* Street */}
           <input
             type="text"
             name="street"
@@ -337,7 +368,6 @@ export default function EditShippingAddress() {
             className="w-full p-2 border rounded"
           />
 
-          {/* House number */}
           <input
             type="text"
             name="houseNumber"
@@ -347,7 +377,6 @@ export default function EditShippingAddress() {
             className="w-full p-2 border rounded"
           />
 
-          {/* RT / RW */}
           <div className="flex gap-2">
             <input
               type="text"
@@ -367,7 +396,6 @@ export default function EditShippingAddress() {
             />
           </div>
 
-          {/* Address line */}
           <input
             type="text"
             name="addressLine"
@@ -378,7 +406,7 @@ export default function EditShippingAddress() {
           />
         </div>
 
-        {/* Kanan Map */}
+        {/* kanan map */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <MapPin className="text-blue-600 w-5 h-5" />

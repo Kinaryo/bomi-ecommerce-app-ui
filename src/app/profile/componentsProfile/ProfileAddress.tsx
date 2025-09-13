@@ -6,12 +6,30 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
+// Lazy-load peta
 const ProfileMap = dynamic(() => import("./ProfileMap"), { ssr: false });
 
-export default function ProfileAddress({ shippingAddress }: { shippingAddress: any }) {
+// Tipe alamat pengiriman (bisa disesuaikan dengan API)
+interface ShippingAddress {
+  addressLine?: string;
+  street?: string;
+  houseNumber?: string;
+  subDistricts?: { name?: string };
+  districts?: { name?: string };
+  cities?: { name?: string };
+  provinces?: { name?: string };
+  latitude?: number | string;
+  longitude?: number | string;
+}
+
+export default function ProfileAddress({
+  shippingAddress,
+}: {
+  shippingAddress?: ShippingAddress | null;
+}) {
   const [showSheet, setShowSheet] = useState(false);
 
-  // Disable body scroll when sheet open (helps avoid visual gaps / scroll jump)
+  // Disable body scroll when sheet open
   useEffect(() => {
     if (showSheet) {
       const prev = document.body.style.overflow;
@@ -33,7 +51,6 @@ export default function ProfileAddress({ shippingAddress }: { shippingAddress: a
           Tambah Alamat
         </Link>
       </div>
-
     );
   }
 
@@ -79,72 +96,67 @@ export default function ProfileAddress({ shippingAddress }: { shippingAddress: a
         )}
       </div>
 
-      {/* Bottom Sheet (full bleed, selalu bottom-0) */}
+      {/* Bottom Sheet */}
       <AnimatePresence>
         {showSheet && (
-          <>
-            {/* container full-viewport (pastikan tidak ada padding di sini) */}
-            <motion.div
-              className="fixed inset-0 z-[9998]"
+          <motion.div
+            className="fixed inset-0 z-[9998]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* overlay */}
+            <motion.button
+              onClick={() => setShowSheet(false)}
+              className="absolute inset-0 bg-black/50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              aria-label="Tutup"
+            />
+
+            {/* panel */}
+            <motion.div
+              className={
+                "fixed left-0 right-0 bottom-0 w-full bg-white rounded-t-2xl " +
+                "pt-4 px-4 pb-[env(safe-area-inset-bottom,1rem)] z-[9999] " +
+                "max-h-[calc(100vh-3.5rem)] overflow-auto"
+              }
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.15}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) setShowSheet(false);
+              }}
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* overlay */}
-              <motion.button
-                onClick={() => setShowSheet(false)}
-                className="absolute inset-0 bg-black/50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                aria-label="Tutup"
-              />
+              {/* Handle bar */}
+              <div className="flex justify-center mb-3">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+              </div>
 
-              {/* panel: langsung left/right/bottom = 0, width penuh */}
-              <motion.div
-                className={
-                  "fixed left-0 right-0 bottom-0 w-full bg-white rounded-t-2xl " +
-                  "pt-4 px-4 pb-[env(safe-area-inset-bottom,1rem)] z-[9999] " +
-                  "max-h-[calc(100vh-3.5rem)] overflow-auto"
-                }
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                drag="y"
-                dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={0.15}
-                onDragEnd={(_, info) => {
-                  if (info.offset.y > 100) setShowSheet(false);
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Handle bar */}
-                <div className="flex justify-center mb-3">
-                  <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-                </div>
-
-                <div className="space-y-3 mb-5">
-                  <Link
-                    href="/profile/address/edit-shipping-address"
-                    className="block w-full px-4 py-3 bg-blue-600 text-white rounded-lg text-center hover:bg-blue-700 transition"
-                  >
-                    Edit Alamat
-                  </Link>
-                  <button
-                    onClick={() => setShowSheet(false)}
-                    className="w-full px-4 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              </motion.div>
+              <div className="space-y-3 mb-5">
+                <Link
+                  href="/profile/address/edit-shipping-address"
+                  className="block w-full px-4 py-3 bg-blue-600 text-white rounded-lg text-center hover:bg-blue-700 transition"
+                >
+                  Edit Alamat
+                </Link>
+                <button
+                  onClick={() => setShowSheet(false)}
+                  className="w-full px-4 py-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Tutup
+                </button>
+              </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
-
-
     </>
   );
 }

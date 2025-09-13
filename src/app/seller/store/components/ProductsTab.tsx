@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Star, Plus, ArrowLeft } from "lucide-react";
 import ProductDetail from "./product/ProductDetailTab";
 import AddProductForm from "./product/AddProductForm";
@@ -27,6 +26,12 @@ interface Category {
   imageCategoryUrl: string | null;
 }
 
+interface Store {
+  idStore: number;
+  nameStore: string;
+  // tambahkan properti lain jika ada di API
+}
+
 interface ProductsTabProps {
   token: string | null;
 }
@@ -39,7 +44,7 @@ export default function ProductsTab({ token }: ProductsTabProps) {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [store, setStore] = useState<any>(null);
+  const [store, setStore] = useState<Store | null>(null);
   const [hasBankAccount, setHasBankAccount] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -57,7 +62,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
   const [hydrated, setHydrated] = useState(false);
 
   const observer = useRef<IntersectionObserver | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     setHydrated(true);
@@ -99,65 +103,63 @@ export default function ProductsTab({ token }: ProductsTabProps) {
   }, [token]);
 
   // fetch products
-  const fetchProducts = async (
-    page: number,
-    query = "",
-    categoryId: number | null = null
-  ) => {
-    if (loadingProducts || !hasMore) return;
-    setLoadingProducts(true);
+  const fetchProducts = useCallback(
+    async (pageParam: number, query = "", categoryId: number | null = null) => {
+      if (loadingProducts || !hasMore) return;
+      setLoadingProducts(true);
 
-    try {
-      const limit = page === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
-      const categoryParam = categoryId ? `&category=${categoryId}` : "";
+      try {
+        const limit = pageParam === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
+        const categoryParam = categoryId ? `&category=${categoryId}` : "";
 
-      const res = await fetch(
-        `${API_BASE_URL}/seller/products?page=${page}&limit=${limit}&search=${encodeURIComponent(
-          query
-        )}${categoryParam}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
-      );
-
-      const data = await res.json();
-
-      if (!data.data || data.data.length === 0) {
-        setHasMore(false);
-        return;
-      }
-
-      const mappedProducts: Product[] = data.data.map((p: any) => ({
-        idProduct: p.idProduct,
-        nameProduct: p.nameProduct,
-        price: p.price,
-        nameStore: p.nameStore,
-        primaryImage: p.primaryImage,
-        avgRating: p.avgRating,
-        totalReviews: p.totalReviews,
-        sold: p.sold,
-        idCategory: p.idCategory,
-      }));
-
-      setProducts((prev) => {
-        const combined = [...prev, ...mappedProducts];
-        const unique = Array.from(
-          new Map(combined.map((p) => [p.idProduct, p])).values()
+        const res = await fetch(
+          `${API_BASE_URL}/seller/products?page=${pageParam}&limit=${limit}&search=${encodeURIComponent(
+            query
+          )}${categoryParam}`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
         );
-        return unique;
-      });
 
-      // kalau jumlah produk < limit, berarti sudah terakhir
-      if (data.data.length < limit) {
-        setHasMore(false);
+        const data = await res.json();
+
+        if (!data.data || data.data.length === 0) {
+          setHasMore(false);
+          return;
+        }
+
+        const mappedProducts: Product[] = data.data.map((p: any) => ({
+          idProduct: p.idProduct,
+          nameProduct: p.nameProduct,
+          price: p.price,
+          nameStore: p.nameStore,
+          primaryImage: p.primaryImage,
+          avgRating: p.avgRating,
+          totalReviews: p.totalReviews,
+          sold: p.sold,
+          idCategory: p.idCategory,
+        }));
+
+        setProducts((prev) => {
+          const combined = [...prev, ...mappedProducts];
+          const unique = Array.from(
+            new Map(combined.map((p) => [p.idProduct, p])).values()
+          );
+          return unique;
+        });
+
+        if (data.data.length < limit) {
+          setHasMore(false);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+        setErrorMessage(message);
+      } finally {
+        setLoadingProducts(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
-      setErrorMessage(message);
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
+    },
+    [loadingProducts, hasMore, token]
+  );
 
   // infinite scroll observer
   const lastProductCallback = useCallback(
@@ -183,18 +185,19 @@ export default function ProductsTab({ token }: ProductsTabProps) {
     }
   }, [hasMore]);
 
-  // fetch ketika search / category berubah
+  // reset ketika search / category berubah
   useEffect(() => {
     setPage(1);
     setHasMore(true);
     setProducts([]);
   }, [searchQuery, selectedCategory]);
 
+  // panggil fetchProducts setiap page/search/category berubah
   useEffect(() => {
     if (page >= 1 && hasMore) {
       fetchProducts(page, searchQuery, selectedCategory);
     }
-  }, [page, searchQuery, selectedCategory]);
+  }, [page, searchQuery, selectedCategory, hasMore, fetchProducts]);
 
   // action handler
   const handleSelectProduct = (id: number) => {
@@ -262,7 +265,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
     );
   }
 
-  // render tambah produk / detail produk
   if (addingProduct) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -297,10 +299,8 @@ export default function ProductsTab({ token }: ProductsTabProps) {
     );
   }
 
-  // render utama
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white">
-      {/* Header + Tambah Produk */}
       <div className="flex items-center justify-end mb-4">
         <button
           onClick={handleClickAddProduct}
@@ -311,7 +311,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
         </button>
       </div>
 
-      {/* Search */}
       <SearchBar
         value={searchQuery}
         onSearch={(query) => {
@@ -319,7 +318,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
         }}
       />
 
-      {/* Category */}
       <div className="flex gap-6 overflow-x-auto justify-between pb-4 mt-4">
         {categories.map((cat) => (
           <div
@@ -338,6 +336,8 @@ export default function ProductsTab({ token }: ProductsTabProps) {
                 alt={cat.name}
                 className="w-full h-full object-cover"
                 onError={(e) => (e.currentTarget.src = "/no-category.png")}
+                width={48}
+                height={48}
               />
             </div>
             <p className="text-sm font-medium text-gray-700 text-center flex-1 ml-3">
@@ -347,7 +347,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
         ))}
       </div>
 
-      {/* Products */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-2 justify-between">
         {products.map((product, index) => {
           const isLast = index === products.length - 1;
@@ -358,7 +357,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
               ref={isLast ? lastProductCallback : null}
               className="hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl bg-gray-100 overflow-hidden block border border-gray-300 cursor-pointer"
             >
-              {/* Image */}
               <div className="relative aspect-[4/3] overflow-hidden">
                 <Image
                   src={product.primaryImage || "/no-image.png"}
@@ -367,10 +365,10 @@ export default function ProductsTab({ token }: ProductsTabProps) {
                   draggable={false}
                   loading="lazy"
                   onError={(e) => (e.currentTarget.src = "/no-image.png")}
+                  fill
                 />
               </div>
 
-              {/* Info */}
               <div className="p-3 space-y-1">
                 <h4 className="font-bold text-sm line-clamp-2 text-gray-800">
                   {product.nameProduct}
@@ -378,7 +376,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
                 <p className="text-xs text-gray-500">{product.nameStore}</p>
               </div>
 
-              {/* Price, Sold, Rating */}
               <div className="px-3 pb-3 space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="text-black font-semibold text-sm">
@@ -397,7 +394,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
           );
         })}
 
-        {/* Skeleton loader */}
         {loadingProducts &&
           Array.from({ length: NEXT_BATCH_LIMIT }).map((_, i) => (
             <div

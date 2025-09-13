@@ -9,19 +9,59 @@ import Image from "next/image";
 
 const MapPicker = dynamic(() => import("./mapPicker"), { ssr: false });
 
-interface EditStoreProps {
-  token?: string | null;
-  store?: any;
-  originAddress?: any;
-  onCancel: () => void;
-  onSave?: (updatedStore: any, updatedAddress: any) => void;
+// ===== Types =====
+interface Province {
+  provinceId: string;
+  name: string;
+}
+interface City {
+  cityId: string;
+  name: string;
+}
+interface District {
+  districtId: string;
+  name: string;
+}
+interface SubDistrict {
+  subDistrictId: string;
+  name: string;
 }
 
-export default function EditStore({ token, store, originAddress, onCancel, onSave }: EditStoreProps) {
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [subDistricts, setSubDistricts] = useState<any[]>([]);
+interface StoreForm {
+  storeName: string;
+  description: string;
+  latitude: string;
+  longitude: string;
+}
+
+interface AddressForm {
+  country: string;
+  provinceId: string;
+  cityId: string;
+  districtId: string;
+  subDistrictId: string;
+  street: string;
+  houseNumber: string;
+  rt: string;
+  rw: string;
+  addressLine: string;
+  longitude: string;
+  latitude: string;
+  isPrimary: boolean;
+}
+
+interface EditStoreProps {
+  token?: string | null;
+  onCancel: () => void;
+  onSave?: (updatedStore: StoreForm, updatedAddress: AddressForm) => void;
+}
+
+export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
+  // ===== State =====
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
 
   const [loadingProvinces, setLoadingProvinces] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
@@ -29,13 +69,13 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
   const [loadingSubDistricts, setLoadingSubDistricts] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
-  const [storeForm, setStoreForm] = useState({
+  const [storeForm, setStoreForm] = useState<StoreForm>({
     storeName: "",
     description: "",
     latitude: "",
     longitude: "",
   });
-  const [addressForm, setAddressForm] = useState({
+  const [addressForm, setAddressForm] = useState<AddressForm>({
     country: "Indonesia",
     provinceId: "",
     cityId: "",
@@ -121,7 +161,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
 
     fetchStore();
     fetchAddress();
-  }, [token]);
+  }, [token, authHeaders]);
 
   // ===== Fetch Wilayah =====
   useEffect(() => {
@@ -132,7 +172,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
       .then((data) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
-  }, [token]);
+  }, [token, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.provinceId || !token) return;
@@ -142,7 +182,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
       .then((data) => setCities(Array.isArray(data.cities) ? data.cities : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
-  }, [addressForm.provinceId, token]);
+  }, [addressForm.provinceId, token, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.cityId || !token) return;
@@ -152,7 +192,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
       .then((data) => setDistricts(Array.isArray(data.districts) ? data.districts : []))
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
-  }, [addressForm.cityId, token]);
+  }, [addressForm.cityId, token, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.districtId || !token) return;
@@ -162,7 +202,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
       .then((data) => setSubDistricts(Array.isArray(data.subDistricts) ? data.subDistricts : []))
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
-  }, [addressForm.districtId, token]);
+  }, [addressForm.districtId, token, authHeaders]);
 
   // ===== Handlers =====
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -259,6 +299,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
     }
   };
 
+  // ===== UI =====
   return (
     <motion.div className="max-w-6xl p-4 border-gray-400 shadow-md rounded-md" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <button
@@ -270,7 +311,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
       </button>
       <h2 className="text-xl  font-semibold mb-4 mt-4">Edit Toko</h2>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Kiri */}
+        {/* kiri */}
         <div className="space-y-3">
           <input
             type="text"
@@ -393,7 +434,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
           />
         </div>
 
-        {/* Kanan */}
+        {/* kanan */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 p-3 bg-blue-50 border rounded">
             <MapPin className="text-blue-600 w-5 h-5" />
@@ -418,7 +459,7 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
           <div>
             <label className="block text-sm font-medium mb-1">Foto Toko</label>
             {previewImage && (
-              <Image src={previewImage} alt="preview" className="w-full h-40 object-cover rounded mb-2" />
+              <Image src={previewImage} alt="preview" width={400} height={160} className="w-full h-40 object-cover rounded mb-2" />
             )}
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full p-2 border rounded" />
           </div>
@@ -440,4 +481,3 @@ export default function EditStore({ token, store, originAddress, onCancel, onSav
     </motion.div>
   );
 }
-

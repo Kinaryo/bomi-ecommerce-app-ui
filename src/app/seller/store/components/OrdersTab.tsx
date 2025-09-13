@@ -16,7 +16,7 @@ const STATUS_TABS = [
   "shipped",
   "delivered",
   "cancelled",
-];
+] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Menunggu Pembayaran",
@@ -34,13 +34,30 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
+// tipe item pada order
+interface OrderItem {
+  productImage: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  totalSubPrice: number;
+}
+
+// tipe order
+interface Order {
+  idOrder: number;
+  orderStatus: string;
+  airWayBill?: string;
+  items?: OrderItem[];
+}
+
 export default function OrdersTab() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("pending_payment");
@@ -50,7 +67,7 @@ export default function OrdersTab() {
   >(null);
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -160,12 +177,12 @@ export default function OrdersTab() {
     );
   };
 
-  const handleOpenModal = (order: any) => {
+  const handleOpenModal = (order: Order) => {
     setSelectedOrder(order);
     setShowModal(true);
   };
 
-  const handleOrderUpdated = (updatedOrder: any) => {
+  const handleOrderUpdated = (updatedOrder: Order) => {
     setOrders((prev) =>
       prev.map((o) => (o.idOrder === updatedOrder.idOrder ? updatedOrder : o))
     );
@@ -268,8 +285,7 @@ export default function OrdersTab() {
                 <div className="p-4 rounded-xl">
                   <div className="flex justify-end">
                     <span
-                      className={`px-3 py-1 rounded-md text-xs font-medium ${STATUS_COLORS[order.orderStatus] ??
-                        "bg-gray-100 text-gray-600"
+                      className={`px-3 py-1 rounded-md text-xs font-medium ${STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-600"
                         }`}
                     >
                       {STATUS_LABELS[order.orderStatus] ?? order.orderStatus}
@@ -280,7 +296,7 @@ export default function OrdersTab() {
                     <h4 className="font-semibold">Resi: {order.airWayBill}</h4>
                   )}
 
-                  {order.items?.map((item: any, idx: number) => (
+                  {order.items?.map((item, idx) => (
                     <div
                       key={idx}
                       className="flex items-center gap-4 border-b last:border-0 py-3"
@@ -288,6 +304,8 @@ export default function OrdersTab() {
                       <Image
                         src={item.productImage}
                         alt={item.productName}
+                        width={80}
+                        height={80}
                         className="w-20 h-20 rounded-lg object-cover"
                       />
                       <div className="flex flex-col">

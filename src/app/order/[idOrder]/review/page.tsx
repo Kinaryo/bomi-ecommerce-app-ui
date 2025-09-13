@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -11,15 +11,17 @@ interface ReviewImage {
   imageUrl: string;
 }
 
+interface Seller {
+  name: string;
+  role?: string;
+  profileImageUrl?: string;
+}
+
 interface Reply {
   idReply: number;
   reply: string;
   createdAt: string;
-  seller?: {
-    name: string;
-    role?: string;
-    profileImageUrl?: string;
-  };
+  seller?: Seller;
 }
 
 interface Review {
@@ -74,19 +76,20 @@ export default function ReviewPage() {
       );
       const data = await res.json();
       if (data.status === "success") {
-        setReview(data.data || null);
-        if (data.data) {
-          setComment(data.data.comment ?? "");
-          setRating(data.data.rating ?? 5);
+        const fetched: Review | null = data.data || null;
+        setReview(fetched);
+        if (fetched) {
+          setComment(fetched.comment ?? "");
+          setRating(fetched.rating ?? 5);
         }
-        return data.data ?? null;
+        return fetched;
       } else {
         Swal.fire("Gagal", data.message || "Gagal mengambil review", "error");
         return null;
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+      Swal.fire("Error", "Terjadi kesalahan", "error");
       return null;
     } finally {
       setLoading(false);
@@ -98,14 +101,12 @@ export default function ReviewPage() {
     return () => {
       images.forEach((i) => URL.revokeObjectURL(i.preview));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchReview]);
 
   useEffect(() => {
     return () => {
       images.forEach((i) => URL.revokeObjectURL(i.preview));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async () => {
@@ -169,9 +170,9 @@ export default function ReviewPage() {
       } else {
         Swal.fire("Gagal", data.message || "Gagal mengirim review", "error");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+      Swal.fire("Error", "Terjadi kesalahan", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -215,9 +216,9 @@ export default function ReviewPage() {
       } else {
         Swal.fire("Gagal", data.message || "Gagal menghapus gambar", "error");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+      Swal.fire("Error", "Terjadi kesalahan", "error");
     }
   };
 
@@ -261,9 +262,9 @@ export default function ReviewPage() {
       } else {
         Swal.fire("Gagal", data.message || "Gagal menghapus review", "error");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+      Swal.fire("Error", "Terjadi kesalahan", "error");
     }
   };
 
@@ -383,7 +384,7 @@ export default function ReviewPage() {
                         reply.seller?.profileImageUrl ||
                         "https://via.placeholder.com/40x40.png?text=S"
                       }
-                      alt={reply.seller?.name}
+                      alt={reply.seller?.name || "seller"}
                       className="w-9 h-9 rounded-full object-cover border"
                     />
                     <div className="flex-1">
@@ -522,11 +523,12 @@ export default function ReviewPage() {
                 ? "Mengupdate..."
                 : "Mengirim..."
               : review
-              ? "Update Review"
-              : "Kirim Review"}
+                ? "Update Review"
+                : "Kirim Review"}
           </button>
         </>
       )}
+
     </div>
   );
 }

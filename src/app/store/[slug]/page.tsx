@@ -24,6 +24,13 @@ interface Category {
   imageCategoryUrl: string;
 }
 
+interface Store {
+  storeName: string;
+  storeAddress: string;
+  storeImageUrl: string;
+  rating: number;
+}
+
 const FIRST_BATCH_LIMIT = 5;
 const NEXT_BATCH_LIMIT = 10;
 
@@ -31,7 +38,7 @@ export default function StorePage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
 
-  const [storeData, setStoreData] = useState<any>(null);
+  const [storeData, setStoreData] = useState<Store | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,50 +49,56 @@ export default function StorePage() {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
 
-  // =======================
-  // Fetch store data
-  // =======================
+  // fetch store data
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/store/${slug}`)
-      .then((res) => res.json())
-      .then((resJson) => {
-        if (resJson.status === "success") setStoreData(resJson.data);
-        else throw new Error("Store tidak ditemukan");
-      })
-      .catch(() => {
+    const fetchStore = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/store/${slug}`);
+        const resJson = await res.json();
+        if (resJson.status === "success") {
+          setStoreData(resJson.data as Store);
+        } else {
+          throw new Error("Store tidak ditemukan");
+        }
+      } catch {
         Swal.fire({
           icon: "error",
           title: "Gagal",
           text: "Store tidak ditemukan",
         });
-      });
+      }
+    };
+    if (slug) fetchStore();
   }, [slug]);
 
-  // =======================
-  // Fetch categories
-  // =======================
+  // fetch categories
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/categories`)
-      .then((res) => res.json())
-      .then((resJson) => setCategories(resJson.data || []))
-      .catch((err) => console.error("Gagal ambil kategori", err))
-      .finally(() => setLoadingCategories(false));
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/categories`);
+        const resJson = await res.json();
+        setCategories(resJson.data || []);
+      } catch (err) {
+        console.error("Gagal ambil kategori", err);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
   }, []);
 
-  // =======================
-  // Fetch products
-  // =======================
+  // fetch products function
   const fetchProducts = async (
-    page: number,
+    pageParam: number,
     query: string,
     categoryId: number | null
   ) => {
     setLoadingProducts(true);
     try {
-      const limit = page === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
+      const limit = pageParam === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
       const categoryParam = categoryId ? `&category=${categoryId}` : "";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/stores/${slug}/products?page=${page}&limit=${limit}&search=${encodeURIComponent(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/stores/${slug}/products?page=${pageParam}&limit=${limit}&search=${encodeURIComponent(
           query
         )}${categoryParam}`
       );
@@ -97,8 +110,8 @@ export default function StorePage() {
       }
 
       setProducts((prev) => {
-        if (page === 1) return data.data;
-        const combined = [...prev, ...data.data];
+        if (pageParam === 1) return data.data as Product[];
+        const combined = [...prev, ...(data.data as Product[])];
         const unique = Array.from(
           new Map(combined.map((p) => [p.idProduct, p])).values()
         );
@@ -111,9 +124,7 @@ export default function StorePage() {
     }
   };
 
-  // =======================
-  // Reset products saat search/kategori berubah
-  // =======================
+  // reset products saat search/kategori berubah
   useEffect(() => {
     setPage(1);
     setHasMore(true);
@@ -121,17 +132,15 @@ export default function StorePage() {
     fetchProducts(1, searchQuery, selectedCategory);
   }, [searchQuery, selectedCategory, slug]);
 
-  // =======================
-  // Infinite scroll
-  // =======================
+  // infinite scroll next page
   useEffect(() => {
     if (page > 1) {
       fetchProducts(page, searchQuery, selectedCategory);
     }
-  }, [page]);
+  }, [page, searchQuery, selectedCategory, slug]);
 
   const lastProductCallback = useCallback(
-    (node: HTMLDivElement) => {
+    (node: HTMLDivElement | null) => {
       if (loadingProducts) return;
       if (observer.current) observer.current.disconnect();
 
@@ -146,9 +155,6 @@ export default function StorePage() {
     [loadingProducts, hasMore]
   );
 
-  // =======================
-  // Back button handler
-  // =======================
   const handleBackToList = () => {
     router.push("/products");
   };
@@ -201,6 +207,8 @@ export default function StorePage() {
                 <Image
                   src={cat.imageCategoryUrl || "/no-category.png"}
                   alt={cat.name}
+                  width={48}
+                  height={48}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -215,17 +223,13 @@ export default function StorePage() {
       {/* Produk */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Produk dari toko ini</h2>
-        <StoreProducts
-          products={products}
-        />
+        <StoreProducts products={products} />
 
         {/* Infinite scroll sentinel */}
         <div ref={lastProductCallback} />
 
         {!hasMore && (
-          <p className="text-center mt-4 text-gray-500">
-            Tidak ada produk lagi
-          </p>
+          <p className="text-center mt-4 text-gray-500">Tidak ada produk lagi</p>
         )}
       </div>
 

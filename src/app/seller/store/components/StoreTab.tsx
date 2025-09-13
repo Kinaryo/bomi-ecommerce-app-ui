@@ -5,18 +5,42 @@ import { Loader2, Camera, Trash2, ChevronRight } from "lucide-react";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import EditStore from "./store/EditStore";
 
-import EditStore from "./store/EditStore"; // komponen edit toko
 const ProfileMap = dynamic(() => import("./store/Map"), { ssr: false });
+
+interface Store {
+  idStore: number;
+  storeName: string;
+  description?: string;
+  imageUrl?: string | null;
+  // tambahkan field lain sesuai API jika perlu
+}
+
+interface OriginAddress {
+  addressLine?: string;
+  street?: string;
+  houseNumber?: string;
+  rt?: string;
+  rw?: string;
+  subDistricts?: { name?: string; zipCode?: string };
+  districts?: { name?: string };
+  cities?: { name?: string };
+  provinces?: { name?: string };
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  isPrimary?: boolean;
+}
 
 interface StoreTabProps {
   token: string | null;
 }
 
 export default function StoreTab({ token }: StoreTabProps) {
-  const [store, setStore] = useState<any>(null);
+  const [store, setStore] = useState<Store | null>(null);
   const [loadingStore, setLoadingStore] = useState(true);
-  const [originAddress, setOriginAddress] = useState<any>(null);
+  const [originAddress, setOriginAddress] = useState<OriginAddress | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(true);
   const [updatingImage, setUpdatingImage] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -33,8 +57,11 @@ export default function StoreTab({ token }: StoreTabProps) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data?.status?.toLowerCase() === "success" && data.data) setStore(data.data);
-        else setStore(null);
+        if (data?.status?.toLowerCase() === "success" && data.data) {
+          setStore(data.data as Store);
+        } else {
+          setStore(null);
+        }
       } catch {
         Swal.fire("Error", "Gagal mengambil data store", "error");
         setStore(null);
@@ -56,8 +83,9 @@ export default function StoreTab({ token }: StoreTabProps) {
         });
         const data = await res.json();
         if (data?.status?.toLowerCase() === "success" && data.data?.length > 0) {
-          const primaryAddress = data.data.find((addr: any) => addr.isPrimary) || data.data[0];
-          setOriginAddress(primaryAddress);
+          const primaryAddress =
+            data.data.find((addr: OriginAddress) => addr.isPrimary) || data.data[0];
+          setOriginAddress(primaryAddress as OriginAddress);
         } else setOriginAddress(null);
       } catch {
         setOriginAddress(null);
@@ -76,14 +104,19 @@ export default function StoreTab({ token }: StoreTabProps) {
     formData.append("image", file);
     setUpdatingImage(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/update-store-image`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/update-store-image`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
       const data = await res.json();
       if (data.status === "success") {
-        setStore((prev: any) => ({ ...prev, imageUrl: data.data.imageUrl }));
+        setStore((prev) =>
+          prev ? { ...prev, imageUrl: data.data.imageUrl } : prev
+        );
         Swal.fire("Berhasil", "Gambar toko berhasil diperbarui", "success");
       } else {
         Swal.fire("Gagal", data.message || "Gagal memperbarui gambar", "error");
@@ -111,13 +144,16 @@ export default function StoreTab({ token }: StoreTabProps) {
 
     setUpdatingImage(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/delete-store-image`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/delete-store-image`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = await res.json();
       if (data.status === "success") {
-        setStore((prev: any) => ({ ...prev, imageUrl: null }));
+        setStore((prev) => (prev ? { ...prev, imageUrl: null } : prev));
         Swal.fire("Terhapus!", "Gambar toko berhasil dihapus", "success");
       } else {
         Swal.fire("Gagal", data.message || "Gagal menghapus gambar", "error");
@@ -168,7 +204,7 @@ export default function StoreTab({ token }: StoreTabProps) {
         store={store}
         originAddress={originAddress}
         onCancel={() => setEditing(false)}
-        onSave={(updatedStore, updatedAddress) => {
+        onSave={(updatedStore: Store, updatedAddress: OriginAddress) => {
           setStore(updatedStore);
           setOriginAddress(updatedAddress);
           setEditing(false);
@@ -187,7 +223,10 @@ export default function StoreTab({ token }: StoreTabProps) {
               <Image
                 src={store.imageUrl}
                 alt={store.storeName}
-                className={`w-full h-full object-cover ${updatingImage ? "opacity-50" : ""}`}
+                className={`w-full h-full object-cover ${
+                  updatingImage ? "opacity-50" : ""
+                }`}
+                fill
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">

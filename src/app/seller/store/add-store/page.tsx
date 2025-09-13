@@ -1,19 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { MapPin } from "lucide-react";
 import Swal from "sweetalert2";
 
-// MapPicker (Leaflet)
 const MapPicker = dynamic(() => import("../components/store/mapPicker"), { ssr: false });
 
+interface Province {
+  provinceId: string;
+  name: string;
+}
+interface City {
+  cityId: string;
+  name: string;
+}
+interface District {
+  districtId: string;
+  name: string;
+}
+interface SubDistrict {
+  subDistrictId: string;
+  name: string;
+}
+
 export default function CreateStore() {
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [subDistricts, setSubDistricts] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
 
   const [loadingProvinces, setLoadingProvinces] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
@@ -46,10 +62,14 @@ export default function CreateStore() {
   const [storeImage, setStoreImage] = useState<File | null>(null);
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const authHeaders = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+
+  const authHeaders = useMemo(
+    () => ({
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }),
+    [token]
+  );
 
   const isAddressValid =
     addressForm.provinceId &&
@@ -72,37 +92,43 @@ export default function CreateStore() {
       .then((data) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
-  }, []);
+  }, [authHeaders]);
 
   useEffect(() => {
     if (!addressForm.provinceId) return;
     setLoadingCities(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/cities/${addressForm.provinceId}`, { headers: authHeaders })
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/cities/${addressForm.provinceId}`, {
+      headers: authHeaders,
+    })
       .then((res) => res.json())
       .then((data) => setCities(Array.isArray(data.cities) ? data.cities : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
-  }, [addressForm.provinceId]);
+  }, [addressForm.provinceId, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.cityId) return;
     setLoadingDistricts(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/district/${addressForm.cityId}`, { headers: authHeaders })
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/district/${addressForm.cityId}`, {
+      headers: authHeaders,
+    })
       .then((res) => res.json())
       .then((data) => setDistricts(Array.isArray(data.districts) ? data.districts : []))
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
-  }, [addressForm.cityId]);
+  }, [addressForm.cityId, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.districtId) return;
     setLoadingSubDistricts(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/sub-district/${addressForm.districtId}`, { headers: authHeaders })
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/sub-district/${addressForm.districtId}`, {
+      headers: authHeaders,
+    })
       .then((res) => res.json())
       .then((data) => setSubDistricts(Array.isArray(data.subDistricts) ? data.subDistricts : []))
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
-  }, [addressForm.districtId]);
+  }, [addressForm.districtId, authHeaders]);
 
   // ===== Handler =====
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -119,134 +145,131 @@ export default function CreateStore() {
     }
   };
 
-  // Helper delay 1 detik
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!storeForm.storeName || !storeForm.description) {
-    Swal.fire({
-      icon: "warning",
-      title: "Oops...",
-      text: "Lengkapi nama dan deskripsi toko!",
-      confirmButtonColor: "#f59e0b",
-    });
-    return;
-  }
-
-  if (!isAddressValid) {
-    Swal.fire({
-      icon: "warning",
-      title: "Oops...",
-      text: "Lengkapi semua field alamat dan pilih lokasi di peta!",
-      confirmButtonColor: "#f59e0b",
-    });
-    return;
-  }
-
-  try {
-    Swal.fire({
-      title: "Sedang diproses...",
-      html: `
-        <div style="width:100%; background:#eee; border-radius:6px; overflow:hidden; margin-top:10px;">
-          <div id="progress-bar" style="height:10px; width:0%; background:#3b82f6; transition: width 0.3s;"></div>
-        </div>
-        <p id="progress-text" style="margin-top:8px;">Menyimpan data alamat pengiriman...</p>
-      `,
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
-
-    const updateProgress = (percent: number, text: string) => {
-      const progressBar = document.getElementById("progress-bar");
-      const progressText = document.getElementById("progress-text");
-      if (progressBar) progressBar.style.width = percent + "%";
-      if (progressText) progressText.innerText = text;
-    };
-
-    // 1. Buat origin address
-    updateProgress(10, "Menyimpan data alamat pengiriman...");
-    const addressRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/origin-address/create`, {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify(addressForm),
-    });
-    const addressData = await addressRes.json();
-    if (!addressRes.ok) throw new Error(addressData.message || "Gagal membuat origin address");
-    await delay(1000);
-
-    // 2. Buat store
-    updateProgress(50, "Menyimpan data toko...");
-    const storeRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/post`, {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({
-        storeName: storeForm.storeName,
-        description: storeForm.description,
-        latitude: addressForm.latitude,
-        longitude: addressForm.longitude,
-      }),
-    });
-    const storeData = await storeRes.json();
-    if (!storeRes.ok) throw new Error(storeData.message || "Gagal membuat store");
-    await delay(1000);
-
-    // 3. Upload foto (opsional)
-    if (storeImage) {
-      updateProgress(80, "Mengunggah gambar toko...");
-      const formData = new FormData();
-      formData.append("image", storeImage);
-
-      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/update-store-image`, {
-        method: "PATCH",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) throw new Error(uploadData.message || "Gagal upload foto store");
-      await delay(1000);
-    }
-
-    updateProgress(100, "Selesai!");
-
-    // 4. Cek apakah sudah punya rekening bank
-    const bankCheckRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/bank-check`, {
-      headers: authHeaders,
-    });
-    const bankCheckData = await bankCheckRes.json();
-
-    if (!bankCheckData.hasBankAccount) {
+    if (!storeForm.storeName || !storeForm.description) {
       Swal.fire({
-        icon: "info",
-        title: "Tambah Rekening Bank",
-        text: "Toko berhasil dibuat, tapi Anda belum menambahkan rekening bank. Silakan tambahkan sekarang.",
-        confirmButtonColor: "#2563eb",
-      }).then(() => {
-        window.location.href = "/store/bank-account";
+        icon: "warning",
+        title: "Oops...",
+        text: "Lengkapi nama dan deskripsi toko!",
+        confirmButtonColor: "#f59e0b",
       });
       return;
     }
 
-    // Jika sudah ada rekening
-    Swal.fire({
-      icon: "success",
-      title: "Berhasil!",
-      text: "Toko berhasil dibuat dan rekening bank sudah ada.",
-      confirmButtonColor: "#2563eb",
-    }).then(() => {
-      window.location.href = "/store"; // atau halaman dashboard toko
-    });
-  } catch (err) {
-    Swal.fire({
-      icon: "error",
-      title: "Terjadi Kesalahan",
-      text: (err as Error).message || "Silakan coba lagi nanti.",
-      confirmButtonColor: "#dc2626",
-    });
-  }
-};
+    if (!isAddressValid) {
+      Swal.fire({
+        icon: "warning",
+        title: "Oops...",
+        text: "Lengkapi semua field alamat dan pilih lokasi di peta!",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
 
+    try {
+      Swal.fire({
+        title: "Sedang diproses...",
+        html: `
+          <div style="width:100%; background:#eee; border-radius:6px; overflow:hidden; margin-top:10px;">
+            <div id="progress-bar" style="height:10px; width:0%; background:#3b82f6; transition: width 0.3s;"></div>
+          </div>
+          <p id="progress-text" style="margin-top:8px;">Menyimpan data alamat pengiriman...</p>
+        `,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const updateProgress = (percent: number, text: string) => {
+        const progressBar = document.getElementById("progress-bar");
+        const progressText = document.getElementById("progress-text");
+        if (progressBar) progressBar.style.width = percent + "%";
+        if (progressText) progressText.innerText = text;
+      };
+
+      // 1. Buat origin address
+      updateProgress(10, "Menyimpan data alamat pengiriman...");
+      const addressRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/origin-address/create`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify(addressForm),
+      });
+      const addressData = await addressRes.json();
+      if (!addressRes.ok) throw new Error(addressData.message || "Gagal membuat origin address");
+      await delay(1000);
+
+      // 2. Buat store
+      updateProgress(50, "Menyimpan data toko...");
+      const storeRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/post`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          storeName: storeForm.storeName,
+          description: storeForm.description,
+          latitude: addressForm.latitude,
+          longitude: addressForm.longitude,
+        }),
+      });
+      const storeData = await storeRes.json();
+      if (!storeRes.ok) throw new Error(storeData.message || "Gagal membuat store");
+      await delay(1000);
+
+      // 3. Upload foto (opsional)
+      if (storeImage) {
+        updateProgress(80, "Mengunggah gambar toko...");
+        const formData = new FormData();
+        formData.append("image", storeImage);
+
+        const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/store/update-store-image`, {
+          method: "PATCH",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadData.message || "Gagal upload foto store");
+        await delay(1000);
+      }
+
+      updateProgress(100, "Selesai!");
+
+      // 4. Cek apakah sudah punya rekening bank
+      const bankCheckRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/bank-check`, {
+        headers: authHeaders,
+      });
+      const bankCheckData = await bankCheckRes.json();
+
+      if (!bankCheckData.hasBankAccount) {
+        Swal.fire({
+          icon: "info",
+          title: "Tambah Rekening Bank",
+          text: "Toko berhasil dibuat, tapi Anda belum menambahkan rekening bank. Silakan tambahkan sekarang.",
+          confirmButtonColor: "#2563eb",
+        }).then(() => {
+          window.location.href = "/store/bank-account";
+        });
+        return;
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Toko berhasil dibuat dan rekening bank sudah ada.",
+        confirmButtonColor: "#2563eb",
+      }).then(() => {
+        window.location.href = "/store";
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Terjadi Kesalahan",
+        text: (err as Error).message || "Silakan coba lagi nanti.",
+        confirmButtonColor: "#dc2626",
+      });
+    }
+  };
 
   return (
     <motion.div
@@ -260,7 +283,6 @@ export default function CreateStore() {
       </h1>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* KIRI: Input Form */}
         <div className="space-y-3">
           <input
             type="text"
@@ -281,7 +303,6 @@ export default function CreateStore() {
             required
           />
 
-          {/* Alamat */}
           <select
             name="provinceId"
             value={addressForm.provinceId}
@@ -345,8 +366,8 @@ export default function CreateStore() {
               {!addressForm.districtId
                 ? "Pilih kecamatan dulu"
                 : loadingSubDistricts
-                  ? "Loading kelurahan..."
-                  : "Pilih Kelurahan/Desa"}
+                ? "Loading kelurahan..."
+                : "Pilih Kelurahan/Desa"}
             </option>
             {subDistricts.map((s) => (
               <option key={s.subDistrictId} value={s.subDistrictId}>
@@ -406,7 +427,6 @@ export default function CreateStore() {
           />
         </div>
 
-        {/* KANAN: Map & Koordinat */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <MapPin className="text-blue-600 w-5 h-5" />
@@ -444,7 +464,6 @@ export default function CreateStore() {
               />
             </div>
           </div>
-          {/* Upload Gambar */}
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Foto Toko</label>
             <input

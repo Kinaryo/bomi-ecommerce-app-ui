@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
-import OrderReviewPage from "./OrderReviewPage"; 
+import OrderReviewPage from "./OrderReviewPage";
 import Image from "next/image";
 
 declare global {
   interface Window {
-    snap: any;
+    snap: unknown;
   }
 }
 
@@ -26,15 +26,41 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
+interface Shipping {
+  expeditionName: string;
+  etd: string;
+  expeditionCost: number;
+  airWayBill?: string;
+}
+
+interface OrderItem {
+  productName: string;
+  productImage: string;
+  quantity: number;
+  price: number;
+  totalSubPrice: number;
+}
+
+interface Order {
+  idOrder: number;
+  orderStatus: string;
+  noteCustomer?: string;
+  informationOrder?: string;
+  totalProduct: number;
+  totalQuantity: number;
+  paymentAmount: number;
+  shipping?: Shipping;
+  items: OrderItem[];
+}
+
 interface OrderDetailPageProps {
   token: string | null;
   idOrder: string;
-  onBack?: () => void;
-  onUpdate?: (order: any) => void;
+  onUpdate?: (order: Order) => void;
 }
 
-export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: OrderDetailPageProps) {
-  const [order, setOrder] = useState<any>(null);
+export default function OrderDetailPage({ token, idOrder, onUpdate }: OrderDetailPageProps) {
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [awb, setAwb] = useState("");
@@ -48,10 +74,11 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.status === "success") setOrder(data.data);
+        if (data.status === "success") setOrder(data.data as Order);
         else setOrder(null);
       } catch (err) {
         console.error(err);
+        setOrder(null);
       } finally {
         setLoading(false);
       }
@@ -65,6 +92,7 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
       alert("Nomor resi wajib diisi");
       return;
     }
+    if (!order) return;
 
     try {
       const res = await fetch(
@@ -81,10 +109,16 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
       const data = await res.json();
       if (data.status === "success") {
         alert("Nomor resi berhasil disimpan!");
-        const updated = { ...order, orderStatus: "shipped", shipping: { ...order.shipping, airWayBill: awb } };
+        const updated: Order = {
+          ...order,
+          orderStatus: "shipped",
+          shipping: order.shipping
+            ? { ...order.shipping, airWayBill: awb }
+            : undefined,
+        };
         setOrder(updated);
         setShowModal(false);
-        if (onUpdate) onUpdate(updated);
+        onUpdate?.(updated);
       } else {
         alert(data.message || "Gagal menyimpan resi");
       }
@@ -102,18 +136,24 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
   return (
     <div className="p-2">
       <div className="bg-white rounded-2xl shadow-md p-4 space-y-6">
-
         {/* Status & Toko */}
         <div className="space-y-2">
           <div className="flex justify-end">
-            <span className={`px-3 py-1 rounded-md text-xs font-medium ${STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-600"}`}>
+            <span
+              className={`px-3 py-1 rounded-md text-xs font-medium ${
+                STATUS_COLORS[order.orderStatus] ??
+                "bg-gray-100 text-gray-600"
+              }`}
+            >
               {STATUS_LABELS[order.orderStatus] ?? order.orderStatus}
             </span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0">
             {order.shipping?.airWayBill && (
-              <p className="text-sm text-gray-700">No Resi: {order.shipping.airWayBill}</p>
+              <p className="text-sm text-gray-700">
+                No Resi: {order.shipping.airWayBill}
+              </p>
             )}
           </div>
         </div>
@@ -133,20 +173,27 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
         <div className="border border-gray-200 shadow-sm p-4 rounded-md">
           <h4 className="text-sm text-gray-800 font-bold">Produk</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-            {order.items.map((item: any, idx: number) => (
-              <div key={idx} className="flex flex-col sm:flex-row items-center gap-4 p-2 hover:bg-gray-50 rounded-lg transition">
+            {order.items.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex flex-col sm:flex-row items-center gap-4 p-2 hover:bg-gray-50 rounded-lg transition"
+              >
                 <Image
                   src={item.productImage}
                   alt={item.productName}
                   className="w-24 h-24 rounded-lg object-cover"
+                  width={96}
+                  height={96}
                 />
                 <div className="flex-1 w-full">
                   <p className="font-medium text-gray-800">{item.productName}</p>
                   <p className="text-sm text-gray-600">
-                    Qty: {item.quantity} x Rp {Number(item.price).toLocaleString("id-ID")}
+                    Qty: {item.quantity} x Rp{" "}
+                    {Number(item.price).toLocaleString("id-ID")}
                   </p>
                   <p className="text-sm font-semibold text-gray-800">
-                    Subtotal: Rp {Number(item.totalSubPrice).toLocaleString("id-ID")}
+                    Subtotal: Rp{" "}
+                    {Number(item.totalSubPrice).toLocaleString("id-ID")}
                   </p>
                 </div>
               </div>
@@ -161,7 +208,10 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
             <div className="pt-1 space-y-1 text-sm text-gray-700">
               <p>Ekspedisi: {order.shipping.expeditionName}</p>
               <p>Estimasi: {order.shipping.etd}</p>
-              <p>Biaya: Rp {Number(order.shipping.expeditionCost).toLocaleString("id-ID")}</p>
+              <p>
+                Biaya: Rp{" "}
+                {Number(order.shipping.expeditionCost).toLocaleString("id-ID")}
+              </p>
             </div>
           </div>
         )}
@@ -223,7 +273,7 @@ export default function OrderDetailPage({ token, idOrder, onBack, onUpdate }: Or
         </div>
       )}
 
-      {/* 📌 Komponen Review */}
+      {/* Komponen Review */}
       {order.orderStatus === "delivered" && (
         <OrderReviewPage token={token} idOrder={idOrder} />
       )}

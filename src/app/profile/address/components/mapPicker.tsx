@@ -8,7 +8,7 @@ import {
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import L, { LeafletMouseEvent, Marker as LeafletMarker } from "leaflet";
 import { useEffect, useState } from "react";
 
 // Import JS & CSS geocoder (WAJIB)
@@ -34,7 +34,7 @@ function LocationMarker({ onChange, lat, lng }: MapPickerProps) {
   );
 
   useMapEvents({
-    click(e) {
+    click(e: LeafletMouseEvent) {
       const { lat, lng } = e.latlng;
       setPosition([lat, lng]);
       onChange(lat.toString(), lng.toString());
@@ -47,7 +47,7 @@ function LocationMarker({ onChange, lat, lng }: MapPickerProps) {
       draggable
       eventHandlers={{
         dragend(e) {
-          const marker = e.target;
+          const marker = e.target as LeafletMarker;
           const pos = marker.getLatLng();
           setPosition([pos.lat, pos.lng]);
           onChange(pos.lat.toString(), pos.lng.toString());
@@ -58,21 +58,29 @@ function LocationMarker({ onChange, lat, lng }: MapPickerProps) {
 }
 
 // 🔎 Geocoder control
-function GeocoderControl({ onChange }: { onChange: (lat: string, lng: string) => void }) {
+function GeocoderControl({
+  onChange,
+}: {
+  onChange: (lat: string, lng: string) => void;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    const geocoder = (L.Control as any).geocoder({
+    const geocoder = (L.Control as unknown as {
+      geocoder: (opts: { defaultMarkGeocode: boolean }) => L.Control;
+    }).geocoder({
       defaultMarkGeocode: false,
     })
-      .on("markgeocode", (e: any) => {
+      .on("markgeocode", (e: { geocode: { center: L.LatLng } }) => {
         const { center } = e.geocode;
         map.setView(center, 15); // zoom lebih dekat
         onChange(center.lat.toString(), center.lng.toString());
       })
       .addTo(map);
 
-    return () => map.removeControl(geocoder);
+    return () => {
+      map.removeControl(geocoder);
+    };
   }, [map, onChange]);
 
   return null;

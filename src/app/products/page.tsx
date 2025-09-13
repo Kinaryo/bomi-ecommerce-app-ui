@@ -24,7 +24,7 @@ interface Category {
   imageCategoryUrl: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL as string;
 
 export default function ProductsPage() {
   const FIRST_BATCH_LIMIT = 5;
@@ -44,9 +44,7 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const observer = useRef<IntersectionObserver | null>(null);
 
-  // =======================
   // INIT CATEGORY DARI QUERY URL
-  // =======================
   useEffect(() => {
     const categoryFromUrl = searchParams.get("category");
     if (categoryFromUrl) {
@@ -54,19 +52,15 @@ export default function ProductsPage() {
     }
   }, [searchParams]);
 
-  // =======================
   // FETCH CATEGORIES
-  // =======================
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const token = localStorage.getItem("token");
-        const headers: any = {};
+        const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
 
-        const res = await fetch(`${API_BASE_URL}/user/categories`, {
-          headers,
-        });
+        const res = await fetch(`${API_BASE_URL}/user/categories`, { headers });
         if (!res.ok) throw new Error("Gagal mengambil kategori");
         const data = await res.json();
         setCategories(data.data || []);
@@ -82,55 +76,50 @@ export default function ProductsPage() {
     fetchCategories();
   }, [router]);
 
-  // =======================
-  // FETCH PRODUCTS
-  // =======================
-  const fetchProducts = async (
-    page: number,
-    query = "",
-    categoryId: number | null = null
-  ) => {
-    setLoadingProducts(true);
-    try {
-      const token = localStorage.getItem("token");
-      const headers: any = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
+  // FETCH PRODUCTS (dibungkus useCallback supaya stabil)
+  const fetchProducts = useCallback(
+    async (page: number, query = "", categoryId: number | null = null) => {
+      setLoadingProducts(true);
+      try {
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
 
-      const limit = page === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
-      const categoryParam = categoryId ? `&category=${categoryId}` : "";
-      const res = await fetch(
-        `${API_BASE_URL}/user/products?page=${page}&limit=${limit}&search=${encodeURIComponent(
-          query
-        )}${categoryParam}`,
-        { headers }
-      );
-
-      const data = await res.json();
-
-      if (!data.data || data.data.length === 0) {
-        setHasMore(false);
-        return;
-      }
-
-      setProducts((prev) => {
-        const combined = [...prev, ...data.data];
-        const unique = Array.from(
-          new Map(combined.map((p) => [p.idProduct, p])).values()
+        const limit = page === 1 ? FIRST_BATCH_LIMIT : NEXT_BATCH_LIMIT;
+        const categoryParam = categoryId ? `&category=${categoryId}` : "";
+        const res = await fetch(
+          `${API_BASE_URL}/user/products?page=${page}&limit=${limit}&search=${encodeURIComponent(
+            query
+          )}${categoryParam}`,
+          { headers }
         );
-        return unique;
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
-      setErrorMessage(message);
-      console.error(err);
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
 
-  // =======================
+        const data = await res.json();
+
+        if (!data.data || data.data.length === 0) {
+          setHasMore(false);
+          return;
+        }
+
+        setProducts((prev) => {
+          const combined = [...prev, ...data.data];
+          const unique = Array.from(
+            new Map(combined.map((p) => [p.idProduct, p])).values()
+          );
+          return unique;
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+        setErrorMessage(message);
+        console.error(err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    },
+    [FIRST_BATCH_LIMIT, NEXT_BATCH_LIMIT, API_BASE_URL]
+  );
+
   // OBSERVER REF CALLBACK
-  // =======================
   const lastProductCallback = useCallback(
     (node: HTMLDivElement) => {
       if (loadingProducts) return;
@@ -147,25 +136,21 @@ export default function ProductsPage() {
     [loadingProducts, hasMore]
   );
 
-  // =======================
   // FETCH PRODUCTS KETIKA PAGE, SEARCH, ATAU CATEGORY BERUBAH
-  // =======================
   useEffect(() => {
     setPage(1);
     setHasMore(true);
     setProducts([]);
     fetchProducts(1, searchQuery, selectedCategory);
-  }, [searchQuery, selectedCategory]);
+  }, [fetchProducts, searchQuery, selectedCategory]);
 
   useEffect(() => {
     if (page > 1) {
       fetchProducts(page, searchQuery, selectedCategory);
     }
-  }, [page]);
+  }, [fetchProducts, page, searchQuery, selectedCategory]);
 
-  // =======================
   // LOADING / ERROR STATE
-  // =======================
   if (loadingCategories && page === 1) {
     return (
       <div className="flex justify-center items-center min-h-screen text-gray-500">
@@ -182,11 +167,9 @@ export default function ProductsPage() {
     );
   }
 
-  // =======================
   // RENDER PAGE
-  // =======================
   return (
-        <div className="mx-auto p-2 md:p-2 lg:p-8 mt-20">
+    <div className="mx-auto p-2 md:p-2 lg:p-8 mt-20">
       <h1 className="flex items-center justify-center gap-2 text-3xl font-extrabold text-gray-800 mb-6">
         Produk
       </h1>
@@ -231,6 +214,8 @@ export default function ProductsPage() {
                 src={cat.imageCategoryUrl || "/no-category.png"}
                 alt={cat.name}
                 className="w-full h-full object-cover"
+                width={48}
+                height={48}
               />
             </div>
             <p className="text-sm font-medium text-gray-700 text-center flex-1 ml-3">
@@ -259,6 +244,7 @@ export default function ProductsPage() {
                   className="absolute top-0 left-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                   draggable={false}
                   loading="lazy"
+                  fill
                 />
               </div>
 

@@ -1,15 +1,56 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { ArrowLeft, Store } from "lucide-react";
 import Image from "next/image";
+
 declare global {
   interface Window {
-    snap: any;
+    snap?: {
+      pay: (
+        token: string,
+        callbacks: {
+          onSuccess: () => void;
+          onPending: () => void;
+          onError: () => void;
+          onClose: () => void;
+        }
+      ) => void;
+    };
   }
 }
+
+type OrderItem = {
+  idProduct: number;
+  productName: string;
+  productImage: string;
+  quantity: number;
+  price: number;
+  totalSubPrice: number;
+};
+
+type Shipping = {
+  expeditionName: string;
+  etd: string;
+  expeditionCost: number;
+  airWayBill?: string;
+};
+
+type Order = {
+  orderStatus: string;
+  paymentStatus: string;
+  paymentToken?: string;
+  paymentAmount: number;
+  storeName: string;
+  noteCustomer?: string;
+  informationOrder?: string;
+  totalProduct: number;
+  totalQuantity: number;
+  items: OrderItem[];
+  shipping?: Shipping;
+};
 
 const CANCELABLE_STATUSES = ["pending_payment"];
 
@@ -29,11 +70,9 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
-// Helper fetch dengan token
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   if (!token) throw new Error("Token tidak ada");
-
   return fetch(url, {
     ...options,
     headers: {
@@ -47,23 +86,23 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { idOrder } = params;
+  const { idOrder } = params as { idOrder: string };
 
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [paying, setPaying] = useState(false);
 
-  // Load NEXT_PUBLIC_MIDTRANS Snap JS
+  // load snap js
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://app.sandbox.NEXT_PUBLIC_MIDTRANS.com/snap/snap.js";
+    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
     script.setAttribute("data-client-key", process.env.NEXT_PUBLIC_NEXT_PUBLIC_MIDTRANS_CLIENT_KEY!);
     script.async = true;
     document.body.appendChild(script);
   }, []);
 
-  // Fetch order detail
+  // fetch order detail
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -78,7 +117,7 @@ export default function OrderDetailPage() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
-        if (data.status === "success") setOrder(data.data);
+        if (data.status === "success") setOrder(data.data as Order);
       } catch (error) {
         console.error(error);
         Swal.fire("Error", "Gagal mengambil data order", "error");
@@ -99,7 +138,6 @@ export default function OrderDetailPage() {
       confirmButtonText: "Ya, batalkan",
       cancelButtonText: "Batal",
     });
-
     if (!result.isConfirmed) return;
 
     setCancelling(true);
@@ -113,7 +151,7 @@ export default function OrderDetailPage() {
       const data = await res.json();
       if (data.status === "success") {
         Swal.fire("Berhasil", "Order berhasil dibatalkan", "success");
-        setOrder((prev: any) => ({ ...prev, orderStatus: "cancelled" }));
+        setOrder((prev) => (prev ? { ...prev, orderStatus: "cancelled" } : prev));
       } else {
         Swal.fire("Gagal", data.message || "Gagal membatalkan order", "error");
       }
@@ -134,13 +172,12 @@ export default function OrderDetailPage() {
       Swal.fire("Error", "Snap belum siap, coba beberapa detik lagi", "error");
       return;
     }
-
     setPaying(true);
 
     window.snap.pay(order.paymentToken, {
       onSuccess: () => {
         Swal.fire("Sukses", "Pembayaran berhasil!", "success");
-        setOrder((prev: any) => ({ ...prev, paymentStatus: "paid" }));
+        setOrder((prev) => (prev ? { ...prev, paymentStatus: "paid" } : prev));
         setPaying(false);
       },
       onPending: () => {
@@ -164,7 +201,7 @@ export default function OrderDetailPage() {
     try {
       const { value: quantities } = await Swal.fire({
         title: "Beli Lagi",
-        html: order.items.map((item: any, idx: number) =>
+        html: order.items.map((item, idx) =>
           `<div class="mb-2">
             <label class="block text-left mb-1 font-medium">${item.productName}</label>
             <input type="number" id="qty-${idx}" class="swal2-input" value="${item.quantity}" min="1">
@@ -172,7 +209,7 @@ export default function OrderDetailPage() {
         showCancelButton: true,
         confirmButtonText: "Tambahkan & Checkout",
         cancelButtonText: "Batal",
-        preConfirm: () => order.items.map((_: any, idx: number) => {
+        preConfirm: () => order.items.map((_, idx) => {
           const el = document.getElementById(`qty-${idx}`) as HTMLInputElement;
           return Number(el.value) || 1;
         }),
@@ -181,14 +218,14 @@ export default function OrderDetailPage() {
 
       if (!quantities) return;
 
-      const addCartPromises = order.items.map((item: any, idx: number) =>
+      const addCartPromises = order.items.map((item, idx) =>
         fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/add-cart-item/${item.idProduct}`, {
           method: "POST",
           body: JSON.stringify({ quantity: quantities[idx] }),
         }).then(res => res.json())
       );
 
-      const results = await Promise.all(addCartPromises);
+      const results: Array<{ status: string; data: { idCartItem: string } }> = await Promise.all(addCartPromises);
 
       const failed = results.filter(r => r.status !== "success");
       if (failed.length > 0) {
@@ -196,11 +233,12 @@ export default function OrderDetailPage() {
         return;
       }
 
-      const cartIds = results.map((r: any) => r.data.idCartItem).join(",");
+      const cartIds = results.map(r => r.data.idCartItem).join(",");
       router.push(`/checkout?items=${cartIds}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      Swal.fire("Error", err.message || "Terjadi kesalahan", "error");
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      Swal.fire("Error", message, "error");
     }
   };
 
@@ -227,7 +265,6 @@ export default function OrderDetailPage() {
         Rincian Order
       </h1>
 
-      {/* Tombol Kembali */}
       <button
         onClick={() => router.push(`/order?tab=${order.orderStatus}`)}
         className="mb-6 flex items-center gap-2 px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition shadow-sm"
@@ -237,7 +274,6 @@ export default function OrderDetailPage() {
       </button>
 
       <div className="bg-white rounded-2xl shadow-md p-6 space-y-6">
-        {/* Status & Toko */}
         <div className="space-y-2">
           <div className="flex justify-end">
             <span className={`px-3 py-1 rounded-md text-xs font-medium ${STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-600"}`}>
@@ -255,7 +291,6 @@ export default function OrderDetailPage() {
           )}
         </div>
 
-        {/* Informasi Order */}
         <div className="border-gray-400 shadow-md p-4 rounded-md space-y-2">
           <h4 className="text-sm text-gray-800 font-bold">Informasi Order</h4>
           <div className="mt-1">
@@ -266,15 +301,16 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Produk */}
         <div className="border-gray-400 shadow-md p-4 rounded-md">
           <h4 className="text-sm text-gray-800 font-bold">Produk</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-            {order.items.map((item: any, idx: number) => (
+            {order.items.map((item, idx) => (
               <div key={idx} className="flex items-center gap-4 pb-2 hover:bg-gray-50 rounded-lg transition">
                 <Image
                   src={item.productImage}
                   alt={item.productName}
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-lg object-cover"
                 />
                 <div className="flex-1">
@@ -291,7 +327,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Pengiriman */}
         {order.shipping && (
           <div className="border-gray-400 shadow-md p-4 rounded-md">
             <h4 className="text-sm text-gray-800 font-bold">Pengiriman</h4>
@@ -303,7 +338,6 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* Pembayaran */}
         <div className="border-gray-400 shadow-md p-4 rounded-md">
           <h4 className="text-sm text-gray-800 font-bold">Pembayaran</h4>
           <div className="mt-1 space-y-1">
@@ -313,7 +347,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="pt-2 flex flex-wrap gap-3 justify-end">
           {canPay && (
             <button

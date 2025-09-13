@@ -2,19 +2,30 @@
 
 import { useState, useEffect } from "react";
 
+interface Order {
+  idOrder: number;
+  airWayBill?: string;
+  orderStatus: string;
+  // tambah properti lain jika ada di API
+}
+
+type AlertIcon = "success" | "error" | "warning" | "info" | "question";
+
+interface InputResiModalProps {
+  order: Order;
+  token: string | null;
+  onClose: () => void;
+  onSaved: (orderId: number, awb: string) => void;
+  showAlert: (title: string, text: string, icon: AlertIcon) => void;
+}
+
 export default function InputResiModal({
   order,
   token,
   onClose,
   onSaved,
   showAlert,
-}: {
-  order: any;
-  token: string | null;
-  onClose: () => void;
-  onSaved: (orderId: number, awb: string) => void;
-  showAlert: (title: string, text: string, icon: any) => void;
-}) {
+}: InputResiModalProps) {
   const [awb, setAwb] = useState("");
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Trash2 } from "lucide-react";
 import { useNotification } from "../../context/NotificationContext";
 import Swal from "sweetalert2";
@@ -28,7 +28,6 @@ export default function NotificationPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-  // 👉 total & unread global dari backend
   const [totalAll, setTotalAll] = useState(0);
   const [unreadAll, setUnreadAll] = useState(0);
 
@@ -37,35 +36,37 @@ export default function NotificationPage() {
 
   const { setUnreadCount } = useNotification();
 
-  const fetchNotifications = async (pageParam = 1, append = false) => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/notification?page=${pageParam}&limit=5`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      if (data.status === "success") {
-        const newData: Notif[] = data.data || [];
-        if (append) {
-          setNotifications((prev) => [...prev, ...newData]);
-        } else {
-          setNotifications(newData);
+  // ✅ useCallback agar stabil dan bisa dipakai di useEffect
+  const fetchNotifications = useCallback(
+    async (pageParam = 1, append = false) => {
+      if (!token) return;
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/notification?page=${pageParam}&limit=5`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        if (data.status === "success") {
+          const newData: Notif[] = data.data || [];
+          if (append) {
+            setNotifications((prev) => [...prev, ...newData]);
+          } else {
+            setNotifications(newData);
+          }
+          setPagination(data.pagination);
+          setTotalAll(data.stats?.totalAll || 0);
+          setUnreadAll(data.stats?.unreadAll || 0);
+          setUnreadCount(data.stats?.unreadAll || 0);
         }
-        setPagination(data.pagination);
-
-        // update total & unread global
-        setTotalAll(data.stats?.totalAll || 0);
-        setUnreadAll(data.stats?.unreadAll || 0);
-        setUnreadCount(data.stats?.unreadAll || 0);
+      } catch (err) {
+        console.error("Gagal fetch notif:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Gagal fetch notif:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [token, setUnreadCount] // dependency useCallback
+  );
 
   const markAsRead = async (id: number) => {
     if (!token) return;
@@ -119,7 +120,6 @@ export default function NotificationPage() {
       confirmButtonText: "Ya, hapus semua",
       cancelButtonText: "Batal",
     });
-
     if (!result.isConfirmed) return;
 
     try {
@@ -135,7 +135,6 @@ export default function NotificationPage() {
         setTotalAll(0);
         setUnreadAll(0);
         setUnreadCount(0);
-
         Swal.fire("Berhasil!", "Semua notifikasi dihapus.", "success");
       }
     } catch (err) {
@@ -156,7 +155,6 @@ export default function NotificationPage() {
       confirmButtonText: "Ya, hapus",
       cancelButtonText: "Batal",
     });
-
     if (!result.isConfirmed) return;
 
     try {
@@ -185,13 +183,11 @@ export default function NotificationPage() {
         setTotalAll((prev) => prev - selectedIds.length);
         setUnreadAll((prev) => Math.max(prev - deletedUnread, 0));
         setUnreadCount((prev) => Math.max(prev - deletedUnread, 0));
-
         setPagination((prev) =>
           prev
             ? { ...prev, totalItems: prev.totalItems - selectedIds.length }
             : null
         );
-
         Swal.fire("Berhasil!", "Notifikasi terpilih dihapus.", "success");
       }
     } catch (err) {
@@ -200,9 +196,10 @@ export default function NotificationPage() {
     }
   };
 
+  // ✅ dependency fetchNotifications supaya tidak warning
   useEffect(() => {
     fetchNotifications(1, false);
-  }, []);
+  }, [fetchNotifications]);
 
   const handleLoadMore = () => {
     if (pagination && page < pagination.totalPages) {
@@ -225,7 +222,6 @@ export default function NotificationPage() {
       </h1>
 
       <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-gray-200">
-        {/* Info jumlah global */}
         <div className="mb-4">
           <p className="text-gray-700 text-sm">
             <span className="font-medium">Total:</span> {totalAll} {"  |  "}
@@ -235,7 +231,6 @@ export default function NotificationPage() {
           </p>
         </div>
 
-        {/* Tombol aksi */}
         <div className="flex flex-wrap gap-2">
           {unreadAll > 0 && (
             <button

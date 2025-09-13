@@ -1,22 +1,64 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
+
+declare global {
+  interface Window {
+    snap?: {
+      pay: (
+        token: string,
+        callbacks: {
+          onSuccess: (result: unknown) => void;
+          onPending: (result: unknown) => void;
+          onError: (result: unknown) => void;
+          onClose: () => void;
+        }
+      ) => void;
+    };
+  }
+}
+
+interface PaymentData {
+  // sesuaikan dengan struktur paymentData Anda
+  [key: string]: unknown;
+}
+
+interface Receiver {
+  receiverName: string;
+  receiverAddress: string;
+}
+
+interface Shipper {
+  shipperStoreName: string;
+  shipperName: string;
+  shipperAddress: string;
+}
+
+interface PaymentResponse {
+  orderId: string;
+  totalPayment: number;
+  receiver: Receiver;
+  shipper: Shipper;
+  courierCost: number;
+  totalPriceProduct: number;
+  paymentToken: string;
+}
 
 export default function PaymentPage() {
-  const [paymentData, setPaymentData] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [responseData, setResponseData] = useState<any>(null);
+  const [responseData, setResponseData] = useState<PaymentResponse | null>(null);
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   // Load payment data dari sessionStorage
   useEffect(() => {
-    const data = sessionStorage.getItem("paymentData");
+    const data = sessionStorage.getItem('paymentData');
     if (!data) {
-      setError("Data pembayaran tidak ditemukan. Kembali ke halaman checkout.");
+      setError('Data pembayaran tidak ditemukan. Kembali ke halaman checkout.');
       return;
     }
     setPaymentData(JSON.parse(data));
@@ -24,17 +66,20 @@ export default function PaymentPage() {
 
   // Load Snap JS SDK
   const loadSnapScript = () => {
-    return new Promise((resolve, reject) => {
-      if (document.getElementById("NEXT_PUBLIC_MIDTRANS-script")) {
-        resolve(true);
+    return new Promise<void>((resolve, reject) => {
+      if (document.getElementById('NEXT_PUBLIC_MIDTRANS-script')) {
+        resolve();
         return;
       }
-      const script = document.createElement("script");
+      const script = document.createElement('script');
       script.src = `${process.env.NEXT_PUBLIC_MIDTRANS_URL}/snap/snap.js`;
-      script.setAttribute("data-client-key", process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "");
-      script.id = "NEXT_PUBLIC_MIDTRANS-script";
-      script.onload = () => resolve(true);
-      script.onerror = () => reject("Gagal load Snap JS");
+      script.setAttribute(
+        'data-client-key',
+        process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ''
+      );
+      script.id = 'NEXT_PUBLIC_MIDTRANS-script';
+      script.onload = () => resolve();
+      script.onerror = () => reject('Gagal load Snap JS');
       document.body.appendChild(script);
     });
   };
@@ -45,19 +90,24 @@ export default function PaymentPage() {
 
     setLoading(true);
     try {
-      if (!token) throw new Error("Belum login");
+      if (!token) throw new Error('Belum login');
 
-      const res = await fetch("${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/checkout/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(paymentData)
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/checkout/post`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(paymentData),
+        }
+      );
 
-      const data = await res.json();
-      if (!res.ok || data.status !== "success") throw new Error(data.message || "Gagal membuat order");
+      const data: PaymentResponse & { status?: string; message?: string } =
+        await res.json();
+      if (!res.ok || data.status !== 'success')
+        throw new Error(data.message || 'Gagal membuat order');
 
       setResponseData(data);
 
@@ -67,23 +117,28 @@ export default function PaymentPage() {
       // Panggil Snap popup
       if (window.snap) {
         window.snap.pay(data.paymentToken, {
-          onSuccess: function(result: any) {
-            Swal.fire("Sukses", "Pembayaran berhasil!", "success");
+          onSuccess: () => {
+            Swal.fire('Sukses', 'Pembayaran berhasil!', 'success');
           },
-          onPending: function(result: any) {
-            Swal.fire("Pending", "Pembayaran menunggu konfirmasi.", "info");
+          onPending: () => {
+            Swal.fire('Pending', 'Pembayaran menunggu konfirmasi.', 'info');
           },
-          onError: function(result: any) {
-            Swal.fire("Error", "Pembayaran gagal.", "error");
+          onError: () => {
+            Swal.fire('Error', 'Pembayaran gagal.', 'error');
           },
-          onClose: function() {
-            Swal.fire("Dibatalkan", "User menutup popup pembayaran.", "warning");
-          }
+          onClose: () => {
+            Swal.fire(
+              'Dibatalkan',
+              'User menutup popup pembayaran.',
+              'warning'
+            );
+          },
         });
       }
-    } catch (err: any) {
-      console.error(err);
-      Swal.fire("Error", err.message, "error");
+    } catch (err) {
+      const e = err as Error;
+      console.error(e);
+      Swal.fire('Error', e.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -91,14 +146,26 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (paymentData) handlePaymentRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentData]);
 
   if (error) return <div className="p-6 text-red-500">{error}</div>;
-  if (!paymentData) return <div className="p-6 text-gray-700">Menyiapkan data pembayaran...</div>;
-  if (loading) return <div className="p-6 text-gray-700">Memproses pembayaran...</div>;
+  if (!paymentData)
+    return (
+      <div className="p-6 text-gray-700">Menyiapkan data pembayaran...</div>
+    );
+  if (loading)
+    return <div className="p-6 text-gray-700">Memproses pembayaran...</div>;
   if (!responseData) return null;
 
-  const { orderId, totalPayment, receiver, shipper, courierCost, totalPriceProduct } = responseData;
+  const {
+    orderId,
+    totalPayment,
+    receiver,
+    shipper,
+    courierCost,
+    totalPriceProduct,
+  } = responseData;
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -107,9 +174,11 @@ export default function PaymentPage() {
       <div className="border rounded-lg p-4 space-y-2">
         <h2 className="font-semibold text-lg mb-2">Order Info</h2>
         <div>ID Order: {orderId}</div>
-        <div>Total Produk: Rp{totalPriceProduct.toLocaleString("id-ID")}</div>
-        <div>Ongkir: Rp{courierCost.toLocaleString("id-ID")}</div>
-        <div className="font-bold text-orange-600">Total Bayar: Rp{totalPayment.toLocaleString("id-ID")}</div>
+        <div>Total Produk: Rp{totalPriceProduct.toLocaleString('id-ID')}</div>
+        <div>Ongkir: Rp{courierCost.toLocaleString('id-ID')}</div>
+        <div className="font-bold text-orange-600">
+          Total Bayar: Rp{totalPayment.toLocaleString('id-ID')}
+        </div>
       </div>
 
       <div className="border rounded-lg p-4 space-y-2">

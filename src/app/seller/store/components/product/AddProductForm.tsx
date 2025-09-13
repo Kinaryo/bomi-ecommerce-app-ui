@@ -28,7 +28,6 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load form state dari localStorage agar tetap di halaman saat reload
   useEffect(() => {
     const saved = localStorage.getItem("addProductForm");
     if (saved) {
@@ -43,14 +42,21 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
       setLength(data.length || "");
       setWidth(data.width || "");
       setHeight(data.height || "");
-      // Images tidak disimpan karena file object tidak bisa disimpan di localStorage
     }
   }, []);
 
-  // Simpan state form ke localStorage setiap berubah (kecuali images)
   useEffect(() => {
     const save = {
-      category, name, description, price, stock, status, weight, length, width, height
+      category,
+      name,
+      description,
+      price,
+      stock,
+      status,
+      weight,
+      length,
+      width,
+      height,
     };
     localStorage.setItem("addProductForm", JSON.stringify(save));
   }, [category, name, description, price, stock, status, weight, length, width, height]);
@@ -62,11 +68,11 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
       Swal.fire("Error", "Maksimal upload 5 gambar", "error");
       return;
     }
-    setImages(prev => [...prev, ...filesArray]);
+    setImages((prev) => [...prev, ...filesArray]);
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -90,7 +96,7 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
     if (length) formData.append("length", length.toString());
     if (width) formData.append("width", width.toString());
     if (height) formData.append("height", height.toString());
-    images.forEach(img => formData.append("images", img));
+    images.forEach((img) => formData.append("images", img));
 
     try {
       setLoading(true);
@@ -104,8 +110,7 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
 
       if (data.status === "success") {
         Swal.fire("Berhasil", "Produk berhasil dibuat", "success");
-        if (onAdd) onAdd();
-
+        onAdd?.();
         // Reset form
         setCategory("");
         setName("");
@@ -118,11 +123,11 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
         setWidth("");
         setHeight("");
         setImages([]);
-        localStorage.removeItem("addProductForm"); // hapus state lama
+        localStorage.removeItem("addProductForm");
       } else {
         Swal.fire("Error", data.message || "Gagal membuat produk", "error");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       Swal.fire("Error", "Terjadi kesalahan saat mengirim data", "error");
     } finally {
@@ -263,9 +268,7 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
           onChange={handleImageChange}
           className="border p-2 rounded w-full"
         />
-        <p className="text-sm text-gray-500 mt-1">
-          Pilih minimal 1 dan maksimal 5 gambar.
-        </p>
+        <p className="text-sm text-gray-500 mt-1">Pilih minimal 1 dan maksimal 5 gambar.</p>
 
         {/* Preview gambar */}
         <div className="flex gap-2 mt-2 flex-wrap">
@@ -275,6 +278,8 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
                 src={URL.createObjectURL(img)}
                 alt={img.name}
                 className="w-24 h-24 object-cover rounded border"
+                width={96}
+                height={96}
               />
               <button
                 type="button"

@@ -11,11 +11,17 @@ const MapPicker = dynamic(() => import("../components/mapPicker"), {
   ssr: false,
 });
 
+// tipe data dasar API
+interface Province { provinceId: string; name: string }
+interface City { cityId: string; name: string }
+interface District { districtId: string; name: string }
+interface SubDistrict { subDistrictId: string; name: string }
+
 export default function AddShippingAddress() {
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [subDistricts, setSubDistricts] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
 
   const [loadingProvinces, setLoadingProvinces] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
@@ -55,7 +61,7 @@ export default function AddShippingAddress() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const authHeaders = {
+  const authHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
@@ -72,7 +78,7 @@ export default function AddShippingAddress() {
       })
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
-  }, []);
+  }, [authHeaders]);
 
   // 🔹 Ambil kota sesuai provinsi
   useEffect(() => {
@@ -88,7 +94,7 @@ export default function AddShippingAddress() {
       })
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
-  }, [form.provinceId]);
+  }, [form.provinceId, authHeaders]);
 
   // 🔹 Ambil kecamatan sesuai kota
   useEffect(() => {
@@ -104,7 +110,7 @@ export default function AddShippingAddress() {
       })
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
-  }, [form.cityId]);
+  }, [form.cityId, authHeaders]);
 
   // 🔹 Ambil kelurahan sesuai kecamatan
   useEffect(() => {
@@ -122,7 +128,7 @@ export default function AddShippingAddress() {
       })
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
-  }, [form.districtId]);
+  }, [form.districtId, authHeaders]);
 
   // 🔹 Handler input
   const handleChange = (
@@ -173,7 +179,7 @@ export default function AddShippingAddress() {
           confirmButtonColor: "#dc2626",
         });
       }
-    } catch (err) {
+    } catch {
       Swal.fire({
         icon: "error",
         title: "Terjadi Kesalahan",
@@ -190,7 +196,7 @@ export default function AddShippingAddress() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-         <h1 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
+      <h1 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
         Tambah Alamat Pengiriman
       </h1>
 
@@ -377,9 +383,7 @@ export default function AddShippingAddress() {
           {/* Latitude & Longitude */}
           <div className="flex gap-2">
             <div className="w-1/2">
-              <label className="block text-xs text-gray-500 mb-1">
-                Latitude
-              </label>
+              <label className="block text-xs text-gray-500 mb-1">Latitude</label>
               <input
                 type="text"
                 name="latitude"
@@ -389,9 +393,7 @@ export default function AddShippingAddress() {
               />
             </div>
             <div className="w-1/2">
-              <label className="block text-xs text-gray-500 mb-1">
-                Longitude
-              </label>
+              <label className="block text-xs text-gray-500 mb-1">Longitude</label>
               <input
                 type="text"
                 name="longitude"

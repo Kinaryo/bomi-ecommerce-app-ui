@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState, memo } from "react";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import Swal from "sweetalert2";
-import Image from "next/image";
+import { useEffect, useState, useCallback, memo } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import Swal from 'sweetalert2';
+import Image from 'next/image';
 
 // ======================
 // Types
@@ -66,6 +66,8 @@ const ItemCard = memo(
             src={item.product.primaryImage}
             alt={item.product.name}
             className="w-16 h-16 object-cover rounded-lg shadow-sm"
+            width={64}
+            height={64}
           />
 
           <div className="flex-1">
@@ -82,7 +84,7 @@ const ItemCard = memo(
             )}
 
             <p className="text-sm text-black font-semibold">
-              Rp{item.product.price.toLocaleString("id-ID")}
+              Rp{item.product.price.toLocaleString('id-ID')}
             </p>
           </div>
         </div>
@@ -107,13 +109,16 @@ const ItemCard = memo(
           </div>
 
           <p className="font-bold text-black text-right min-w-[80px] sm:w-[90px]">
-            Rp{item.total.toLocaleString("id-ID")}
+            Rp{item.total.toLocaleString('id-ID')}
           </p>
         </div>
       </div>
     );
   }
 );
+
+// ✅ beri nama display agar linting hilang
+ItemCard.displayName = 'ItemCard';
 
 // ======================
 // Main Cart Component
@@ -126,13 +131,12 @@ export default function Cart() {
   const [selectedStore, setSelectedStore] = useState<number | null>(null);
 
   const router = useRouter();
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   // Fetch Cart
-  const getCart = async () => {
+  const getCart = useCallback(async () => {
     if (!token) {
-      setError("Belum login, silakan login dulu.");
+      setError('Belum login, silakan login dulu.');
       setLoading(false);
       return;
     }
@@ -147,32 +151,32 @@ export default function Cart() {
       );
       if (!res.ok) {
         const text = await res.text();
-        const message = JSON.parse(text)?.message || "Gagal fetch keranjang";
+        const message = JSON.parse(text)?.message || 'Gagal fetch keranjang';
         throw new Error(message);
       }
 
       const data: ApiCartResponse = await res.json();
       setCart(data.data);
     } catch (err: unknown) {
-      console.error("Error getCart:", err);
+      console.error('Error getCart:', err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Terjadi kesalahan");
+        setError('Terjadi kesalahan');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     getCart();
-  }, []);
+  }, [getCart]);
 
   // Toggle select item
   const toggleSelect = (storeId: number, item: CartItemType) => {
     if (item.product.stock === 0) {
-      Swal.fire("Stok habis", "Produk ini tidak bisa dipilih.", "warning");
+      Swal.fire('Stok habis', 'Produk ini tidak bisa dipilih.', 'warning');
       return;
     }
 
@@ -183,7 +187,7 @@ export default function Cart() {
     }
 
     if (selectedStore !== storeId) {
-      Swal.fire("Perhatian", "Hanya bisa memilih produk dari satu toko!", "info");
+      Swal.fire('Perhatian', 'Hanya bisa memilih produk dari satu toko!', 'info');
       return;
     }
 
@@ -212,7 +216,7 @@ export default function Cart() {
         setSelectedItems(validItems);
       }
     } else {
-      Swal.fire("Perhatian", "Hanya bisa memilih produk dari satu toko!", "info");
+      Swal.fire('Perhatian', 'Hanya bisa memilih produk dari satu toko!', 'info');
     }
   };
 
@@ -227,9 +231,9 @@ export default function Cart() {
     if (newQty > item.product.stock) {
       newQty = item.product.stock;
       Swal.fire(
-        "Stok tidak cukup",
+        'Stok tidak cukup',
         `Stok tersedia hanya ${item.product.stock}`,
-        "warning"
+        'warning'
       );
     }
 
@@ -263,15 +267,15 @@ export default function Cart() {
       fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/update-cart-item/${idCartItem}`,
         {
-          method: "PATCH",
+          method: 'PATCH',
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ quantity: newQty }),
         }
       ).catch((err: unknown) => {
-        if (err instanceof Error) console.error("Error update quantity:", err.message);
+        if (err instanceof Error) console.error('Error update quantity:', err.message);
       });
     }
   };
@@ -280,7 +284,7 @@ export default function Cart() {
 
   const handleCheckout = () => {
     if (selectedItems.length === 0) {
-      Swal.fire("Peringatan", "Pilih produk terlebih dahulu!", "info");
+      Swal.fire('Peringatan', 'Pilih produk terlebih dahulu!', 'info');
       return;
     }
 
@@ -289,15 +293,15 @@ export default function Cart() {
     );
     if (outOfStock) {
       Swal.fire(
-        "Stok tidak cukup",
+        'Stok tidak cukup',
         `Produk "${outOfStock.product.name}" stoknya hanya ${outOfStock.product.stock}`,
-        "error"
+        'error'
       );
       return;
     }
 
     const ids = selectedItems.map((i) => i.idCartItem);
-    const query = new URLSearchParams({ items: ids.join(",") });
+    const query = new URLSearchParams({ items: ids.join(',') });
     router.push(`/checkout?${query.toString()}`);
   };
 
@@ -332,14 +336,19 @@ export default function Cart() {
                 );
 
               return (
-                <div key={store.idStore} className="bg-white rounded-xl shadow-lg p-5 space-y-4">
+                <div
+                  key={store.idStore}
+                  className="bg-white rounded-xl shadow-lg p-5 space-y-4"
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <input
                       type="checkbox"
                       checked={allChecked}
                       onChange={() => toggleSelectAll(store)}
                     />
-                    <h2 className="text-xl font-semibold text-gray-800">{store.storeName}</h2>
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      {store.storeName}
+                    </h2>
                   </div>
 
                   {store.items.map((item) => (
@@ -359,7 +368,7 @@ export default function Cart() {
                     <span>Subtotal</span>
                     <span>
                       Rp
-                      {store.items.reduce((s, i) => s + i.total, 0).toLocaleString("id-ID")}
+                      {store.items.reduce((s, i) => s + i.total, 0).toLocaleString('id-ID')}
                     </span>
                   </div>
                 </div>
@@ -373,11 +382,11 @@ export default function Cart() {
                   initial={{ y: 100 }}
                   animate={{ y: 0 }}
                   exit={{ y: 100 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
                   <div className="flex justify-between items-center font-semibold text-black mb-3 text-lg">
                     <span>Total Produk Dipilih</span>
-                    <span>Rp{checkoutTotal.toLocaleString("id-ID")}</span>
+                    <span>Rp{checkoutTotal.toLocaleString('id-ID')}</span>
                   </div>
                   <button
                     onClick={handleCheckout}

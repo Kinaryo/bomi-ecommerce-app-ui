@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
-import { getFcmToken } from "../../../firebaseClient"; // helper ambil FCM token
+import { getFcmToken } from "../../../firebaseClient";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -67,10 +67,9 @@ export default function RegisterPage() {
         return;
       }
 
-      // === Langsung login: simpan token backend ===
       localStorage.setItem("token", data.token);
 
-      // === Ambil FCM token browser & kirim ke backend ===
+      // Ambil FCM token browser & kirim ke backend
       const fcmToken = await getFcmToken();
       if (fcmToken) {
         await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/fcm-token`, {
@@ -81,11 +80,9 @@ export default function RegisterPage() {
           },
           body: JSON.stringify({ fcmToken }),
         });
-      } else {
-        console.warn("Tidak bisa mendapatkan FCM token");
       }
 
-      // === Arahkan sesuai role ===
+      // Arahkan sesuai role
       if (role === "customer") {
         Swal.fire({
           icon: "success",
@@ -134,7 +131,9 @@ export default function RegisterPage() {
             />
           </Link>
         </div>
-        <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Register</h2>
+        <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
+          Register
+        </h2>
 
         <form className="space-y-4" onSubmit={handleSubmit} autoComplete="off">
           <input
@@ -159,7 +158,6 @@ export default function RegisterPage() {
             className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
           />
 
-          {/* Input password dengan tips */}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -180,22 +178,49 @@ export default function RegisterPage() {
 
             {showPasswordTip && (
               <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50">
-                <h3 className="font-semibold mb-2 text-gray-800">Password harus:</h3>
+                <h3 className="font-semibold mb-2 text-gray-800">
+                  Password harus:
+                </h3>
                 <ul className="text-sm space-y-1">
                   <li className="flex items-center">
-                    {hasLowerCase ? <CheckCircle className="text-green-600 mr-1" /> : <XCircle className="text-gray-400 mr-1" />} Huruf kecil
+                    {hasLowerCase ? (
+                      <CheckCircle className="text-green-600 mr-1" />
+                    ) : (
+                      <XCircle className="text-gray-400 mr-1" />
+                    )}
+                    Huruf kecil
                   </li>
                   <li className="flex items-center">
-                    {hasUpperCase ? <CheckCircle className="text-green-600 mr-1" /> : <XCircle className="text-gray-400 mr-1" />} Huruf besar
+                    {hasUpperCase ? (
+                      <CheckCircle className="text-green-600 mr-1" />
+                    ) : (
+                      <XCircle className="text-gray-400 mr-1" />
+                    )}
+                    Huruf besar
                   </li>
                   <li className="flex items-center">
-                    {hasNumber ? <CheckCircle className="text-green-600 mr-1" /> : <XCircle className="text-gray-400 mr-1" />} Angka
+                    {hasNumber ? (
+                      <CheckCircle className="text-green-600 mr-1" />
+                    ) : (
+                      <XCircle className="text-gray-400 mr-1" />
+                    )}
+                    Angka
                   </li>
                   <li className="flex items-center">
-                    {hasSymbol ? <CheckCircle className="text-green-600 mr-1" /> : <XCircle className="text-gray-400 mr-1" />} Simbol (@$!%*?&)
+                    {hasSymbol ? (
+                      <CheckCircle className="text-green-600 mr-1" />
+                    ) : (
+                      <XCircle className="text-gray-400 mr-1" />
+                    )}
+                    Simbol (@$!%*?&)
                   </li>
                   <li className="flex items-center">
-                    {minLength ? <CheckCircle className="text-green-600 mr-1" /> : <XCircle className="text-gray-400 mr-1" />} Minimal 8 karakter
+                    {minLength ? (
+                      <CheckCircle className="text-green-600 mr-1" />
+                    ) : (
+                      <XCircle className="text-gray-400 mr-1" />
+                    )}
+                    Minimal 8 karakter
                   </li>
                 </ul>
               </div>
@@ -207,7 +232,9 @@ export default function RegisterPage() {
             onChange={(e) => setRole(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
           >
-            <option value="" disabled>Pilih Jenis Akun</option>
+            <option value="" disabled>
+              Pilih Jenis Akun
+            </option>
             <option value="customer">Pembeli</option>
             <option value="seller">Penjual</option>
           </select>
@@ -223,7 +250,9 @@ export default function RegisterPage() {
         <div className="flex flex-col mt-2 space-y-1 text-sm text-gray-700">
           <p>
             Sudah punya akun?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">Login</Link>
+            <Link href="/login" className="text-blue-600 hover:underline">
+              Login
+            </Link>
           </p>
         </div>
       </div>

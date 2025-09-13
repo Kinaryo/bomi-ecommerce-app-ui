@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   MapPinHouse,
   Store,
@@ -9,48 +9,85 @@ import {
   ChevronUp,
   Truck,
   StickyNote,
-} from "lucide-react";
-import Swal from "sweetalert2";
-import Image from "next/image";
+} from 'lucide-react';
+import Swal from 'sweetalert2';
+import Image from 'next/image';
+
+// === tipe data hasil checkout ===
+interface ShippingAddress {
+  addressCustomer: string;
+}
+interface CheckoutProduct {
+  idProduct: number;
+  idCartItem: number;
+  name: string;
+  quantity: number;
+  totalPrice: number;
+  imageUrl: string;
+}
+interface PaymentDetail {
+  totalPriceProduct: number;
+  totalDiscount: number;
+  totalTax: number;
+  service: number;
+  totalAllPriceFinal: number;
+}
+interface CheckoutData {
+  products: CheckoutProduct[];
+  payment: PaymentDetail;
+  shippingAddress: ShippingAddress;
+  storeName: string;
+  shortAddressStore: string;
+  ongkir: {
+    courier: string;
+    data: { data: ShippingOption[] };
+  }[];
+}
+interface ShippingOption {
+  name: string;
+  etd: string;
+  cost: number;
+  isActive?: boolean;
+  courier?: string;
+}
 
 export default function CheckoutPaymentPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const itemsParam =
-    searchParams.get("items") || searchParams.get("idCartItem");
-  const cartItemIds = itemsParam?.split(",").map(Number) || [];
+    searchParams.get('items') || searchParams.get('idCartItem');
+  const cartItemIds = itemsParam?.split(',').map(Number) || [];
 
-  const [checkoutData, setCheckoutData] = useState<any>(null);
-  const [loadingMessage, setLoadingMessage] = useState(
-    "Memproses data checkout..."
-  );
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [selectedShippingCost, setSelectedShippingCost] = useState<number>(0);
-  const [selectedCourier, setSelectedCourier] = useState<any>(null);
+  const [selectedCourier, setSelectedCourier] = useState<ShippingOption | null>(
+    null,
+  );
   const [showShippingOptions, setShowShippingOptions] = useState(false);
-  const [noteCustomer, setNoteCustomer] = useState<string>("");
+  const [noteCustomer, setNoteCustomer] = useState<string>('');
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   const showAlert = (
     title: string,
     text: string,
-    icon: "success" | "error" | "warning" | "info",
-    callback?: () => void
+    icon: 'success' | 'error' | 'warning' | 'info',
+    callback?: () => void,
   ) => {
     Swal.fire({
       title,
       text,
       icon,
-      confirmButtonColor: "#2563eb",
-      confirmButtonText: "OK",
-      width: "400px",
+      confirmButtonColor: '#2563eb',
+      confirmButtonText: 'OK',
+      width: '400px',
       customClass: {
-        popup: "rounded-xl shadow-md text-sm",
-        title: "swal2-title-custom font-semibold text-gray-800",
-        htmlContainer: "swal2-htmlContainer-custom text-gray-600",
+        popup: 'rounded-xl shadow-md text-sm',
+        title: 'swal2-title-custom font-semibold text-gray-800',
+        htmlContainer: 'swal2-htmlContainer-custom text-gray-600',
         confirmButton:
-          "px-4 py-1.5 swal2-confirmButton-custom rounded-sm bg-blue-600 text-white font-medium hover:bg-blue-700 transition",
+          'px-4 py-1.5 swal2-confirmButton-custom rounded-sm bg-blue-600 text-white font-medium hover:bg-blue-700 transition',
       },
       buttonsStyling: false,
     }).then(() => {
@@ -65,10 +102,10 @@ export default function CheckoutPaymentPage() {
       didOpen: () => Swal.showLoading(),
       backdrop: `rgba(0,0,0,0.4)`,
       showConfirmButton: false,
-      width: "400px",
+      width: '400px',
       customClass: {
-        popup: "rounded-lg text-xs",
-        title: "swal2-title-custom font-medium text-gray-700",
+        popup: 'rounded-lg text-xs',
+        title: 'swal2-title-custom font-medium text-gray-700',
       },
     });
   };
@@ -77,97 +114,90 @@ export default function CheckoutPaymentPage() {
 
   const loadSnapScript = () => {
     return new Promise((resolve, reject) => {
-      if (document.getElementById("NEXT_PUBLIC_MIDTRANS-script")) {
+      if (document.getElementById('NEXT_PUBLIC_MIDTRANS-script')) {
         resolve(true);
         return;
       }
-      const script = document.createElement("script");
+      const script = document.createElement('script');
       script.src = `${process.env.NEXT_PUBLIC_MIDTRANS_URL}/snap/snap.js`;
       script.setAttribute(
-        "data-client-key",
-        process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ""
+        'data-client-key',
+        process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '',
       );
-      script.id = "NEXT_PUBLIC_MIDTRANS-script";
+      script.id = 'NEXT_PUBLIC_MIDTRANS-script';
       script.onload = () => resolve(true);
-      script.onerror = () => reject("Gagal load Snap JS");
+      script.onerror = () => reject('Gagal load Snap JS');
       document.body.appendChild(script);
     });
   };
 
-const fetchCheckout = async () => {
-  if (!token) {
-    showAlert("Belum Login", "Silakan login terlebih dahulu.", "warning", () =>
-      router.push("/login")
-    );
-    return;
-  }
-
-  showLoading("Mengambil Data Checkout...");
-
-  try {
-    const payload = {
-      cartItems: cartItemIds.map((id) => ({ idCartItem: id })),
-    };
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/checkout`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await res.json();
-    closeLoading();
-
-    // ✅ Cek hanya apakah alamat pengiriman benar-benar ada
-    const hasShippingAddress =
-      data?.shippingAddress?.addressCustomer?.trim().length > 0;
-
-    if (!hasShippingAddress) {
-      showAlert(
-        "Alamat Pengiriman Kosong",
-        "Silakan tambahkan alamat pengiriman terlebih dahulu.",
-        "warning",
-        () => router.push("/profile/address/add-shipping-address")
+  const fetchCheckout = useCallback(async () => {
+    if (!token) {
+      showAlert('Belum Login', 'Silakan login terlebih dahulu.', 'warning', () =>
+        router.push('/login'),
       );
       return;
     }
 
-    if (!res.ok || data.status !== "success") {
-      showAlert("Checkout Gagal", data.message || "Checkout gagal", "error");
-      return;
+    showLoading('Mengambil Data Checkout...');
+
+    try {
+      const payload = {
+        cartItems: cartItemIds.map((id) => ({ idCartItem: id })),
+      };
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/checkout`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const data = await res.json();
+      closeLoading();
+
+      const hasShippingAddress =
+        data?.shippingAddress?.addressCustomer?.trim().length > 0;
+
+      if (!hasShippingAddress) {
+        showAlert(
+          'Alamat Pengiriman Kosong',
+          'Silakan tambahkan alamat pengiriman terlebih dahulu.',
+          'warning',
+          () => router.push('/profile/address/add-shipping-address'),
+        );
+        return;
+      }
+
+      if (!res.ok || data.status !== 'success') {
+        showAlert('Checkout Gagal', data.message || 'Checkout gagal', 'error');
+        return;
+      }
+
+      setCheckoutData(data);
+    } catch (err) {
+      closeLoading();
+      console.error(err);
+      showAlert('Error', (err as Error).message || 'Gagal fetch checkout', 'error');
     }
-
-    setCheckoutData(data);
-  } catch (err: any) {
-    closeLoading();
-    console.error(err);
-    showAlert("Error", err.message || "Gagal fetch checkout", "error");
-  }
-};
-
-
+  }, [cartItemIds, token, router]);
 
   useEffect(() => {
     if (cartItemIds.length > 0) fetchCheckout();
     else {
-      showAlert(
-        "Tidak ada produk",
-        "Tidak ada produk untuk checkout.",
-        "warning"
-      );
+      showAlert('Tidak ada produk', 'Tidak ada produk untuk checkout.', 'warning');
     }
-  }, []);
+  }, [cartItemIds.length, fetchCheckout]);
 
-  const allShippingOptions =
-    checkoutData?.ongkir?.flatMap((o: any) => {
+  const allShippingOptions: ShippingOption[] =
+    checkoutData?.ongkir?.flatMap((o) => {
       if (o?.data?.data) {
-        return o.data.data.map((service: any) => ({
+        return o.data.data.map((service) => ({
           ...service,
           courier: o.courier,
         }));
@@ -182,82 +212,79 @@ const fetchCheckout = async () => {
   const handlePayment = async () => {
     if (!selectedCourier) {
       showAlert(
-        "Kurir Belum Dipilih",
-        "Silakan pilih pengiriman terlebih dahulu.",
-        "warning"
+        'Kurir Belum Dipilih',
+        'Silakan pilih pengiriman terlebih dahulu.',
+        'warning',
       );
       return;
     }
 
-    showLoading("Menyiapkan pembayaran...");
+    showLoading('Menyiapkan pembayaran...');
 
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/customer/checkout/post`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            cartItems: checkoutData.products.map((p: any) => ({
+            cartItems: checkoutData!.products.map((p) => ({
               idCartItem: p.idCartItem,
               quantity: p.quantity,
             })),
             courier: selectedCourier,
             noteCustomer: noteCustomer.trim() || null,
           }),
-        }
+        },
       );
 
       const data = await res.json();
       closeLoading();
 
-      if (!res.ok || data.status !== "success") {
-        throw new Error(data.message || "Gagal membuat order");
+      if (!res.ok || data.status !== 'success') {
+        throw new Error(data.message || 'Gagal membuat order');
       }
 
       await loadSnapScript();
 
-      if (window.snap) {
-        showLoading("Membuka Popup Pembayaran...");
-        window.snap.pay(data.paymentToken, {
+      if ((window as any).snap) {
+        showLoading('Membuka Popup Pembayaran...');
+        (window as any).snap.pay(data.paymentToken, {
           onSuccess: () => {
             closeLoading();
-            showAlert("Sukses", "Pembayaran berhasil!", "success", () =>
-              (window.location.href = "/order")
+            showAlert('Sukses', 'Pembayaran berhasil!', 'success', () =>
+              (window.location.href = '/order'),
             );
           },
           onPending: () => {
             closeLoading();
-            showAlert(
-              "Pending",
-              "Pembayaran menunggu konfirmasi.",
-              "info",
-              () => (window.location.href = "/order")
+            showAlert('Pending', 'Pembayaran menunggu konfirmasi.', 'info', () =>
+              (window.location.href = '/order'),
             );
           },
           onError: () => {
             closeLoading();
-            showAlert("Error", "Pembayaran gagal.", "error", () =>
-              (window.location.href = "/order")
+            showAlert('Error', 'Pembayaran gagal.', 'error', () =>
+              (window.location.href = '/order'),
             );
           },
           onClose: () => {
             closeLoading();
             showAlert(
-              "Dibatalkan",
-              "User menutup popup pembayaran.",
-              "warning",
-              () => (window.location.href = "/order")
+              'Dibatalkan',
+              'User menutup popup pembayaran.',
+              'warning',
+              () => (window.location.href = '/order'),
             );
           },
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       closeLoading();
-      showAlert("Error", err.message, "error");
+      showAlert('Error', (err as Error).message, 'error');
     }
   };
 
@@ -297,7 +324,7 @@ const fetchCheckout = async () => {
           </div>
         </div>
         <div className="px-8 pt-2 space-y-2">
-          {products.map((p: any) => (
+          {products.map((p) => (
             <div
               key={p.idProduct}
               className="flex items-center py-3 border-gray-400 shadow-md rounded-b-sm p-4"
@@ -305,6 +332,8 @@ const fetchCheckout = async () => {
               <Image
                 src={p.imageUrl}
                 alt={p.name}
+                width={64}
+                height={64}
                 className="w-16 h-16 rounded-lg object-cover mr-4"
               />
               <div className="flex-1">
@@ -312,7 +341,7 @@ const fetchCheckout = async () => {
                 <p className="text-xs text-gray-500">x{p.quantity}</p>
               </div>
               <p className="text-sm font-semibold text-black">
-                Rp{p.totalPrice.toLocaleString("id-ID")}
+                Rp{p.totalPrice.toLocaleString('id-ID')}
               </p>
             </div>
           ))}
@@ -354,12 +383,12 @@ const fetchCheckout = async () => {
         {selectedCourier && (
           <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
             <p className="text-sm font-medium text-gray-700">
-              Kurir dipilih:{" "}
+              Kurir dipilih:{' '}
               <span className="font-semibold text-black">{selectedCourier.name}</span>
             </p>
             <p className="text-xs text-gray-500">Estimasi: {selectedCourier.etd}</p>
             <p className="text-sm font-semibold text-gray-800">
-              Rp{selectedCourier.cost.toLocaleString("id-ID")}
+              Rp{selectedCourier.cost.toLocaleString('id-ID')}
             </p>
           </div>
         )}
@@ -376,9 +405,9 @@ const fetchCheckout = async () => {
                   key={idx}
                   className={`flex justify-between items-center py-2 px-3 rounded-xl border cursor-pointer ${
                     selectedCourier?.cost === opt.cost
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200"
-                  } ${!opt.isActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200'
+                  } ${!opt.isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div>
                     <p className="font-medium text-sm">{opt.name}</p>
@@ -386,7 +415,7 @@ const fetchCheckout = async () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="font-semibold text-sm text-gray-800">
-                      Rp{opt.cost.toLocaleString("id-ID")}
+                      Rp{opt.cost.toLocaleString('id-ID')}
                     </p>
                     <input
                       type="radio"
@@ -413,33 +442,33 @@ const fetchCheckout = async () => {
         <h2 className="font-semibold text-lg border-b pb-2">Rincian Pembayaran</h2>
         <div className="flex justify-between text-sm">
           <span>Subtotal Produk</span>
-          <span>Rp{payment.totalPriceProduct.toLocaleString("id-ID")}</span>
+          <span>Rp{payment.totalPriceProduct.toLocaleString('id-ID')}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span>Diskon</span>
           <span className="text-green-600">
-            - Rp{payment.totalDiscount.toLocaleString("id-ID")}
+            - Rp{payment.totalDiscount.toLocaleString('id-ID')}
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span>Pajak</span>
-          <span>Rp{payment.totalTax.toLocaleString("id-ID")}</span>
+          <span>Rp{payment.totalTax.toLocaleString('id-ID')}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span>Service</span>
-          <span>Rp{payment.service.toLocaleString("id-ID")}</span>
+          <span>Rp{payment.service.toLocaleString('id-ID')}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span>Ongkir</span>
           <span>
             {selectedShippingCost > 0
-              ? `Rp${selectedShippingCost.toLocaleString("id-ID")}`
-              : "-"}
+              ? `Rp${selectedShippingCost.toLocaleString('id-ID')}`
+              : '-'}
           </span>
         </div>
         <div className="flex justify-between font-bold text-lg text-blue-600 mt-2 pt-2 border-t">
           <span>Total Pembayaran</span>
-          <span>Rp{totalFinal.toLocaleString("id-ID")}</span>
+          <span>Rp{totalFinal.toLocaleString('id-ID')}</span>
         </div>
       </div>
 
@@ -448,7 +477,7 @@ const fetchCheckout = async () => {
         <div>
           <p className="text-sm text-gray-500">Total Pembayaran</p>
           <p className="text-xl font-bold text-blue-600">
-            Rp{totalFinal.toLocaleString("id-ID")}
+            Rp{totalFinal.toLocaleString('id-ID')}
           </p>
         </div>
         <button

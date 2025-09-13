@@ -15,34 +15,72 @@ interface ProductDetailProps {
 
 interface ProductImage {
   idImage: number;
-  imageUrl: string | null;
+  imageUrl: string;
   isPrimary?: boolean;
 }
 
+interface ProductCategory {
+  name: string;
+}
+
+interface Product {
+  idProduct: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  rating: number;
+  totalReview: number;
+  images: ProductImage[];
+  category?: ProductCategory;
+}
+
+interface Review {
+  idReview: number;
+  comment: string;
+  rating: number;
+  user: {
+    name: string;
+    avatar?: string;
+  };
+}
+
+interface ProductResponse {
+  dataProduct: Product;
+  dataReview: Review[];
+}
+
 export default function ProductDetail({ idProduct }: ProductDetailProps) {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ProductResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [mode, setMode] = useState<"idle" | "post" | "update">("idle");
   const [currentImageId, setCurrentImageId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const [editModalOpen, setEditModalOpen] = useState(false); // state modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   // Fetch product detail
   useEffect(() => {
     if (!token) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/products/${idProduct}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/products/${idProduct}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
       .then((res) => res.json())
       .then((resData) => setData(resData.data))
       .catch((err) => console.error("Error fetch produk:", err));
   }, [idProduct, token]);
 
-  if (!data) return <div className="max-w-6xl mx-auto p-6 text-gray-700">Memuat...</div>;
+  if (!data)
+    return (
+      <div className="max-w-6xl mx-auto p-6 text-gray-700">Memuat...</div>
+    );
 
   const { dataProduct, dataReview } = data;
   const images: ProductImage[] = dataProduct.images || [];
@@ -51,7 +89,11 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
     if (busy) return;
 
     if (action === "post" && images.length >= 5) {
-      Swal.fire("Limit Tercapai", "Anda tidak dapat menambahkan lebih dari 5 gambar.", "warning");
+      Swal.fire(
+        "Limit Tercapai",
+        "Anda tidak dapat menambahkan lebih dari 5 gambar.",
+        "warning"
+      );
       return;
     }
 
@@ -60,7 +102,9 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!e.target.files || e.target.files.length === 0) {
       setMode("idle");
       setCurrentImageId(null);
@@ -68,7 +112,11 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
     }
 
     if (mode === "post" && images.length >= 5) {
-      Swal.fire("Limit Tercapai", "Tidak dapat menambahkan lebih dari 5 gambar.", "warning");
+      Swal.fire(
+        "Limit Tercapai",
+        "Tidak dapat menambahkan lebih dari 5 gambar.",
+        "warning"
+      );
       setMode("idle");
       e.target.value = "";
       return;
@@ -81,7 +129,8 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
     try {
       setBusy(true);
       Swal.fire({
-        title: mode === "update" ? "Memperbarui gambar..." : "Mengunggah gambar...",
+        title:
+          mode === "update" ? "Memperbarui gambar..." : "Mengunggah gambar...",
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading(),
       });
@@ -114,18 +163,41 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
       if (resJson?.status === "success") {
         Swal.fire(
           "Berhasil",
-          mode === "update" ? "Gambar berhasil diperbarui." : "Gambar berhasil ditambahkan.",
+          mode === "update"
+            ? "Gambar berhasil diperbarui."
+            : "Gambar berhasil ditambahkan.",
           "success"
         );
 
         if (mode === "update" && currentImageId) {
-          const updatedImages = (dataProduct.images || []).map((img: ProductImage) =>
-            img.idImage === currentImageId ? resJson.data : img
+          const updatedImages = (dataProduct.images || []).map(
+            (img: ProductImage) =>
+              img.idImage === currentImageId ? resJson.data : img
           );
-          setData((prev: any) => ({ ...prev, dataProduct: { ...prev.dataProduct, images: updatedImages } }));
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  dataProduct: {
+                    ...prev.dataProduct,
+                    images: updatedImages,
+                  },
+                }
+              : prev
+          );
         } else {
           const updatedImages = [...(dataProduct.images || []), resJson.data];
-          setData((prev: any) => ({ ...prev, dataProduct: { ...prev.dataProduct, images: updatedImages } }));
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  dataProduct: {
+                    ...prev.dataProduct,
+                    images: updatedImages,
+                  },
+                }
+              : prev
+          );
         }
       } else {
         Swal.fire("Gagal", resJson?.message || "Gagal upload/update gambar", "error");
@@ -172,8 +244,17 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
 
       if (resJson?.status === "success") {
         Swal.fire("Terhapus", "Gambar berhasil dihapus", "success");
-        const updatedImages = (dataProduct.images || []).filter((img: ProductImage) => img.idImage !== idImage);
-        setData((prev: any) => ({ ...prev, dataProduct: { ...prev.dataProduct, images: updatedImages } }));
+        const updatedImages = (dataProduct.images || []).filter(
+          (img: ProductImage) => img.idImage !== idImage
+        );
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                dataProduct: { ...prev.dataProduct, images: updatedImages },
+              }
+            : prev
+        );
       } else {
         Swal.fire("Gagal", resJson?.message || "Gagal menghapus gambar", "error");
       }
@@ -190,7 +271,11 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
     if (busy) return;
     try {
       setBusy(true);
-      Swal.fire({ title: "Mengubah primary...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({
+        title: "Mengubah primary...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/products/${dataProduct.idProduct}/set-primary-image/${idImage}`,
@@ -206,7 +291,14 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
           ...i,
           isPrimary: i.idImage === idImage,
         }));
-        setData((prev: any) => ({ ...prev, dataProduct: { ...prev.dataProduct, images: updatedImages } }));
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                dataProduct: { ...prev.dataProduct, images: updatedImages },
+              }
+            : prev
+        );
       } else {
         Swal.fire("Gagal", resJson.message || "Gagal mengubah primary", "error");
       }
@@ -231,7 +323,9 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
       />
       <div className="p-4 sm:p-6  border-gray-400 shadow-md rounded-md ">
         {/* Carousel */}
-        {images.length > 0 && <ImageCarousel images={images} name={dataProduct.name} />}
+        {images.length > 0 && (
+          <ImageCarousel images={images} name={dataProduct.name} />
+        )}
 
         {/* Grid gambar */}
         <div className="w-full">
@@ -246,13 +340,19 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
                   {img ? (
                     <>
                       <Image
-                        src={img.imageUrl!}
+                        src={img.imageUrl}
                         alt={`Product ${idx + 1}`}
                         className="w-full h-full object-cover rounded-lg"
+                        width={300}
+                        height={300}
                       />
                       {img.isPrimary ? (
                         <div className="absolute top-1 left-1 z-10">
-                          <Star size={16} className="text-yellow-400" fill="currentColor" />
+                          <Star
+                            size={16}
+                            className="text-yellow-400"
+                            fill="currentColor"
+                          />
                         </div>
                       ) : (
                         <div className="absolute top-1 left-1 z-10">
@@ -290,8 +390,12 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
                       onClick={() => handleSlotClick("post")}
                     >
                       <Plus size={28} />
-                      <span className="text-xs">{busy ? "Sedang..." : "Tambah"}</span>
-                      <span className="text-[10px] text-gray-400">Klik untuk unggah</span>
+                      <span className="text-xs">
+                        {busy ? "Sedang..." : "Tambah"}
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        Klik untuk unggah
+                      </span>
                     </div>
                   )}
                 </div>
@@ -318,10 +422,15 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
         {/* Informasi produk */}
         <div className="flex flex-col md:flex-row gap-8 mt-6">
           <div className="w-full md:w-1/2 space-y-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{dataProduct.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {dataProduct.name}
+            </h1>
             {dataProduct.category && (
               <p className="text-sm text-gray-500">
-                Kategori: <span className="font-medium">{dataProduct.category.name}</span>
+                Kategori:{" "}
+                <span className="font-medium">
+                  {dataProduct.category.name}
+                </span>
               </p>
             )}
             <p className="text-gray-700">{dataProduct.description}</p>
@@ -330,9 +439,13 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
             </p>
             <div className="flex items-center space-x-2 text-gray-600">
               <StarRating rating={dataProduct.rating} />
-              <span className="text-gray-500 text-sm">| {dataProduct.totalReview} ulasan</span>
+              <span className="text-gray-500 text-sm">
+                | {dataProduct.totalReview} ulasan
+              </span>
             </div>
-            <p className="text-gray-700 font-bold">Stok: {dataProduct.stock}</p>
+            <p className="text-gray-700 font-bold">
+              Stok: {dataProduct.stock}
+            </p>
           </div>
         </div>
       </div>
@@ -348,13 +461,17 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
           productId={dataProduct.idProduct}
           onClose={() => setEditModalOpen(false)}
           onUpdate={(updatedProduct) =>
-            setData((prev: any) => ({
-              ...prev,
-              dataProduct: {
-                ...prev.dataProduct,
-                ...updatedProduct,
-              },
-            }))
+            setData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    dataProduct: {
+                      ...prev.dataProduct,
+                      ...updatedProduct,
+                    },
+                  }
+                : prev
+            )
           }
         />
       )}

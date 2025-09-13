@@ -47,7 +47,7 @@ function LocationMarker({ onChange, lat, lng }: MapPickerProps) {
       draggable
       eventHandlers={{
         dragend(e) {
-          const marker = e.target;
+          const marker = e.target as L.Marker;
           const pos = marker.getLatLng();
           setPosition([pos.lat, pos.lng]);
           onChange(pos.lat.toString(), pos.lng.toString());
@@ -57,22 +57,44 @@ function LocationMarker({ onChange, lat, lng }: MapPickerProps) {
   ) : null;
 }
 
-// 🔎 Geocoder control
-function GeocoderControl({ onChange }: { onChange: (lat: string, lng: string) => void }) {
+// 🔎 Geocoder control tanpa any
+interface MarkGeocodeEvent {
+  geocode: {
+    center: L.LatLng;
+  };
+}
+function GeocoderControl({
+  onChange,
+}: {
+  onChange: (lat: string, lng: string) => void;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    const geocoder = (L.Control as any).geocoder({
+    // tipekan geocoder ke L.Control.GeocoderObject
+    const geocoder: L.Control = (L.Control as unknown as {
+      geocoder: (options: Record<string, unknown>) => L.Control;
+    }).geocoder({
       defaultMarkGeocode: false,
-    })
-      .on("markgeocode", (e: any) => {
-        const { center } = e.geocode;
-        map.setView(center, 15); // zoom lebih dekat
-        onChange(center.lat.toString(), center.lng.toString());
-      })
-      .addTo(map);
+    });
 
-    return () => map.removeControl(geocoder);
+    const handler = (e: MarkGeocodeEvent) => {
+      const { center } = e.geocode;
+      map.setView(center, 15); // zoom lebih dekat
+      onChange(center.lat.toString(), center.lng.toString());
+    };
+
+    // @ts-expect-error: event bawaan leaflet-control-geocoder belum punya tipe resmi
+    geocoder.on("markgeocode", handler);
+
+    map.addControl(geocoder);
+
+    return () => {
+      // bersihkan handler dan control
+      // @ts-expect-error: event bawaan
+      geocoder.off("markgeocode", handler);
+      map.removeControl(geocoder);
+    };
   }, [map, onChange]);
 
   return null;

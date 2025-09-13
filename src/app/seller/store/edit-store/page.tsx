@@ -9,18 +9,35 @@ import Image from "next/image";
 
 const MapPicker = dynamic(() => import("../components/store/mapPicker"), { ssr: false });
 
+interface Province {
+  provinceId: string;
+  name: string;
+}
+interface City {
+  cityId: string;
+  name: string;
+}
+interface District {
+  districtId: string;
+  name: string;
+}
+interface SubDistrict {
+  subDistrictId: string;
+  name: string;
+}
+
 export default function EditStore() {
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [subDistricts, setSubDistricts] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
 
   const [loadingProvinces, setLoadingProvinces] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingSubDistricts, setLoadingSubDistricts] = useState(false);
 
-  const [submitting, setSubmitting] = useState(false); // ⬅️ loading submit
+  const [submitting, setSubmitting] = useState(false);
 
   const [storeForm, setStoreForm] = useState({
     storeName: "",
@@ -49,7 +66,7 @@ export default function EditStore() {
   const [previewImage, setPreviewImage] = useState<string>("");
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const authHeaders = {
+  const authHeaders: HeadersInit = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
@@ -117,7 +134,7 @@ export default function EditStore() {
 
     fetchStore();
     fetchAddress();
-  }, []);
+  }, [token]); // ikut token supaya authHeaders up-to-date
 
   // ===== Fetch Data Wilayah =====
   useEffect(() => {
@@ -127,7 +144,7 @@ export default function EditStore() {
       .then((data) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!addressForm.provinceId) return;
@@ -137,7 +154,7 @@ export default function EditStore() {
       .then((data) => setCities(Array.isArray(data.cities) ? data.cities : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
-  }, [addressForm.provinceId]);
+  }, [addressForm.provinceId, token]);
 
   useEffect(() => {
     if (!addressForm.cityId) return;
@@ -147,7 +164,7 @@ export default function EditStore() {
       .then((data) => setDistricts(Array.isArray(data.districts) ? data.districts : []))
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
-  }, [addressForm.cityId]);
+  }, [addressForm.cityId, token]);
 
   useEffect(() => {
     if (!addressForm.districtId) return;
@@ -157,7 +174,7 @@ export default function EditStore() {
       .then((data) => setSubDistricts(Array.isArray(data.subDistricts) ? data.subDistricts : []))
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
-  }, [addressForm.districtId]);
+  }, [addressForm.districtId, token]);
 
   // ===== Handler =====
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -282,7 +299,6 @@ export default function EditStore() {
             className="w-full p-2 border rounded"
           />
 
-          {/* alamat select sama seperti CreateStore */}
           <select
             name="provinceId"
             value={addressForm.provinceId}
@@ -342,8 +358,8 @@ export default function EditStore() {
               {!addressForm.districtId
                 ? "Pilih kecamatan dulu"
                 : loadingSubDistricts
-                  ? "Loading kelurahan..."
-                  : "Pilih Kelurahan/Desa"}
+                ? "Loading kelurahan..."
+                : "Pilih Kelurahan/Desa"}
             </option>
             {subDistricts.map((s) => (
               <option key={s.subDistrictId} value={s.subDistrictId}>
@@ -423,7 +439,7 @@ export default function EditStore() {
           <div>
             <label className="block text-sm font-medium mb-1">Foto Toko</label>
             {previewImage && (
-              <Image src={previewImage} alt="preview" className="w-full h-40 object-cover rounded mb-2" />
+              <Image src={previewImage} alt="preview" width={600} height={200} className="w-full h-40 object-cover rounded mb-2" />
             )}
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full p-2 border rounded" />
           </div>
