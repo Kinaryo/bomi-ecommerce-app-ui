@@ -103,9 +103,8 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 
 // ================== Page ==================
-export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  // ✅ Gunakan React.use() untuk unwrapping params
-  const { slug } = React.use(params);
+export default function ProductPage({ params }: { params: { slug: string } }) {
+  const { slug } = params;
 
   const [dataProduct, setDataProduct] = useState<Product | null>(null);
   const [dataStore, setDataStore] = useState<Store | null>(null);

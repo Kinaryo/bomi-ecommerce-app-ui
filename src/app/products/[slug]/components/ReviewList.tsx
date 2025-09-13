@@ -31,7 +31,12 @@ interface Review {
   replies?: SellerReply[];
 }
 
-export default function ReviewList({ reviews, slugProduct }: { reviews: Review[]; slugProduct: string }) {
+interface ReviewListProps {
+  reviews: Review[];
+  slugProduct: string;
+}
+
+export default function ReviewList({ reviews, slugProduct }: ReviewListProps) {
   const router = useRouter();
 
   const handleSeeAllReviews = () => {
