@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, ArrowLeft } from "lucide-react";
@@ -99,10 +99,13 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
   const [storeImage, setStoreImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string>("");
 
-  const authHeaders: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  const authHeaders = useMemo<HeadersInit>(
+    () => ({
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }),
+    [token]
+  );
 
   const isAddressValid =
     addressForm.provinceId &&
@@ -134,7 +137,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     } catch (err) {
       console.error("Gagal ambil store:", err);
     }
-  }, [token]);
+  }, [token, authHeaders]);
 
   const fetchAddress = useCallback(async () => {
     if (!token) return;
@@ -178,7 +181,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
     } catch (err) {
       console.error("Gagal ambil alamat:", err);
     }
-  }, [token]);
+  }, [token, authHeaders]);
 
   useEffect(() => {
     fetchStore();
@@ -194,7 +197,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<Province[]>) => setProvinces(Array.isArray(data.data) ? data.data : []))
       .catch(() => setProvinces([]))
       .finally(() => setLoadingProvinces(false));
-  }, [token]);
+  }, [token, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.provinceId || !token) return;
@@ -204,7 +207,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<City[]>) => setCities(Array.isArray(data.data) ? data.data : []))
       .catch(() => setCities([]))
       .finally(() => setLoadingCities(false));
-  }, [addressForm.provinceId, token]);
+  }, [addressForm.provinceId, token, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.cityId || !token) return;
@@ -214,7 +217,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<District[]>) => setDistricts(Array.isArray(data.data) ? data.data : []))
       .catch(() => setDistricts([]))
       .finally(() => setLoadingDistricts(false));
-  }, [addressForm.cityId, token]);
+  }, [addressForm.cityId, token, authHeaders]);
 
   useEffect(() => {
     if (!addressForm.districtId || !token) return;
@@ -224,7 +227,7 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
       .then((data: ApiResponse<SubDistrict[]>) => setSubDistricts(Array.isArray(data.data) ? data.data : []))
       .catch(() => setSubDistricts([]))
       .finally(() => setLoadingSubDistricts(false));
-  }, [addressForm.districtId, token]);
+  }, [addressForm.districtId, token, authHeaders]);
 
   // ===== Handlers =====
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -518,20 +521,16 @@ export default function EditStore({ token, onCancel, onSave }: EditStoreProps) {
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full p-2 border rounded"
+              className="block w-full text-sm text-gray-600"
             />
           </div>
-        </div>
 
-        {/* Tombol Submit */}
-        <div className="md:col-span-2 mt-4">
           <button
             type="submit"
             disabled={submitting}
-            className={`w-full py-3 rounded-lg text-white font-medium transition flex items-center justify-center gap-2
-              ${submitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center"
           >
-            {submitting && <Loader2 className="animate-spin w-5 h-5" />}
+            {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {submitting ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
         </div>

@@ -1,5 +1,12 @@
-import ProductDetail from "./ProductDetail";
+// src/app/products/[idProduct]/page.tsx
+import ProductDetail from "./ProductDetail"
 
-export default function ProductPage({ params }: { params: { idProduct: string } }) {
-  return <ProductDetail idProduct={params.idProduct} />;
+interface ProductPageProps {
+  params: {
+    idProduct: string
+  }
+}
+
+export default function ProductPage({ params }: ProductPageProps) {
+  return <ProductDetail idProduct={params.idProduct} />
 }
