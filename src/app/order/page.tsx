@@ -6,22 +6,6 @@ import { Store } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Image from 'next/image';
 
-declare global {
-  interface Window {
-    snap?: {
-      pay: (
-        token: string | undefined,
-        callbacks: {
-          onSuccess?: () => void;
-          onPending?: () => void;
-          onError?: () => void;
-          onClose?: () => void;
-        }
-      ) => void;
-    };
-  }
-}
-
 const STATUS_TABS = [
   'pending_payment',
   'processing_seller',
@@ -177,7 +161,7 @@ export default function OrderPage() {
       alert('Snap belum siap, coba lagi beberapa detik.');
       return;
     }
-    window.snap.pay(order.paymentToken, {
+    window.snap?.pay(order.paymentToken, {
       onSuccess: () => showAlert('Sukses', 'Pembayaran berhasil!', 'success'),
       onPending: () =>
         showAlert('Pending', 'Pembayaran menunggu konfirmasi.', 'info'),
