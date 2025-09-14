@@ -73,8 +73,7 @@ export default function OrderPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const tabFromUrl =
-    (searchParams.get('tab') as Status) || 'pending_payment';
+  const tabFromUrl = (searchParams.get('tab') as Status) || 'pending_payment';
   const [activeTab, setActiveTab] = useState<Status>(tabFromUrl);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -157,11 +156,17 @@ export default function OrderPage() {
   };
 
   const handlePayNow = (order: Order) => {
+    if (!order.paymentToken) {
+      showAlert('Error', 'Payment token tidak tersedia.', 'error');
+      return;
+    }
+
     if (!window.snap) {
       alert('Snap belum siap, coba lagi beberapa detik.');
       return;
     }
-    window.snap?.pay(order.paymentToken, {
+
+    window.snap.pay(order.paymentToken, {
       onSuccess: () => showAlert('Sukses', 'Pembayaran berhasil!', 'success'),
       onPending: () =>
         showAlert('Pending', 'Pembayaran menunggu konfirmasi.', 'info'),
@@ -199,9 +204,7 @@ export default function OrderPage() {
         cancelButtonText: 'Batal',
         preConfirm: () =>
           order.items.map((_, idx) => {
-            const el = document.getElementById(
-              `qty-${idx}`
-            ) as HTMLInputElement;
+            const el = document.getElementById(`qty-${idx}`) as HTMLInputElement;
             return Number(el.value) || 1;
           }),
         width: '450px',
