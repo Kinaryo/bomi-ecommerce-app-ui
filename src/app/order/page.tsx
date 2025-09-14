@@ -257,6 +257,10 @@ export default function OrderPage() {
       });
   }, [activeTab]);
 
+  const setTabRef = (status: Status) => (el: HTMLButtonElement | null) => {
+    tabRefs.current[status] = el;
+  };
+
   return (
     <div className="p-6 md:p-10 mt-20 max-w-6xl mx-auto">
       <h1 className="flex items-center justify-center gap-2 text-3xl font-extrabold text-gray-800 mb-8">
@@ -267,7 +271,7 @@ export default function OrderPage() {
         {STATUS_TABS.map((status) => (
           <button
             key={status}
-            ref={(el) => (tabRefs.current[status] = el)}
+            ref={setTabRef(status)}
             onClick={() => handleChangeTab(status)}
             className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
               activeTab === status
@@ -310,6 +314,7 @@ export default function OrderPage() {
                 {STATUS_LABELS[order.orderStatus]}
               </span>
             </div>
+
             <div className="bg-gray-50 p-4 rounded-xl">
               {order.shipping?.airWayBill && (
                 <h4 className="font-semibold">
@@ -317,7 +322,7 @@ export default function OrderPage() {
                 </h4>
               )}
 
-              {order.items?.map((item, idx) => (
+              {order.items.map((item, idx) => (
                 <div
                   key={idx}
                   className="flex items-center gap-4 border-b last:border-0 py-3"
@@ -329,7 +334,6 @@ export default function OrderPage() {
                     height={80}
                     className="w-20 h-20 rounded-lg object-cover"
                   />
-
                   <div className="flex flex-col">
                     <p className="font-bold">{item.productName}</p>
                     <p className="text-sm text-gray-600">
@@ -343,6 +347,7 @@ export default function OrderPage() {
                 </div>
               ))}
             </div>
+
             <div className="pt-4 flex flex-wrap gap-3 justify-end">
               <button
                 onClick={() => router.push(`/order/${order.idOrder}`)}
