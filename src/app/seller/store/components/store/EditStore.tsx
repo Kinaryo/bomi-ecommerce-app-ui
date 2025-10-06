@@ -50,11 +50,39 @@ interface AddressForm {
   isPrimary: boolean;
 }
 
+interface Store {
+  idStore: number;
+  storeName: string;
+  description?: string;
+  imageUrl?: string | null;
+  latitude?: string;
+  longitude?: string;
+}
+
+interface OriginAddress {
+  addressLine?: string;
+  street?: string;
+  houseNumber?: string;
+  rt?: string;
+  rw?: string;
+  subDistricts?: { name?: string; zipCode?: string };
+  districts?: { name?: string };
+  cities?: { name?: string };
+  provinces?: { name?: string };
+  country?: string;
+  latitude?: number | string;
+  longitude?: number | string;
+  isPrimary?: boolean;
+}
+
 interface EditStoreProps {
   token?: string | null;
+  store?: Store | null;  // ⬅️ tambahkan
+  originAddress?: OriginAddress | null; // ⬅️ tambahkan
   onCancel: () => void;
   onSave?: (updatedStore: StoreForm, updatedAddress: AddressForm) => void;
 }
+
 
 interface ApiResponse<T> {
   data?: T;

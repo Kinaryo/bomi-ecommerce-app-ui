@@ -51,31 +51,34 @@ interface Order {
   items?: OrderItem[];
 }
 
-export default function OrdersTab() {
+interface OrdersTabProps {
+  token: string | null;
+}
+
+export default function OrdersTab({ token }: OrdersTabProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // gunakan token dari props atau dari localStorage
+  const effectiveToken =
+    token || (typeof window !== "undefined" ? localStorage.getItem("token") : null);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("pending_payment");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [selectedReviewOrderId, setSelectedReviewOrderId] = useState<
-    number | null
-  >(null);
+  const [selectedReviewOrderId, setSelectedReviewOrderId] = useState<number | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const showAlert = (
-    title: string,
-    text: string,
-    icon: "success" | "error" | "warning" | "info"
-  ) => {
+  type AlertIcon = "success" | "error" | "warning" | "info" | "question";
+
+  // helper alert SweetAlert
+  const showAlert = (title: string, text: string, icon: AlertIcon) => {
     Swal.fire({
       title,
       text,
@@ -96,17 +99,16 @@ export default function OrdersTab() {
 
   // Fetch orders
   useEffect(() => {
-    if (!token) {
+    if (!effectiveToken) {
       router.push("/login");
       return;
     }
 
     const fetchOrders = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/order`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/seller/order`, {
+          headers: { Authorization: `Bearer ${effectiveToken}` },
+        });
         const data = await res.json();
         if (data.status === "success") setOrders(data.data || []);
         else setOrders([]);
@@ -119,9 +121,9 @@ export default function OrdersTab() {
     };
 
     fetchOrders();
-  }, [router, token]);
+  }, [router, effectiveToken]);
 
-  // Sinkronisasi tab & order dari URL saat reload
+  // Sinkronisasi tab & order dari URL
   useEffect(() => {
     const statusFromUrl = searchParams.get("status") || "pending_payment";
     const orderIdFromUrl = searchParams.get("orderId");
@@ -146,35 +148,30 @@ export default function OrdersTab() {
     }
   }, [activeTab, orders]);
 
-  // Handler
+  // Handler navigasi & update
   const handleChangeStatus = (status: string) => {
     setActiveTab(status);
     setSelectedOrderId(null);
     setSelectedReviewOrderId(null);
-    router.push(`/seller/store?tab=orders&status=${status}`, { shallow: true });
+    router.push(`/seller/store?tab=orders&status=${status}`);
   };
 
   const handleSelectOrder = (id: number) => {
     setSelectedOrderId(id);
     setSelectedReviewOrderId(null);
-    router.push(`/seller/store?tab=orders&status=${activeTab}&orderId=${id}`, {
-      shallow: true,
-    });
+    router.push(`/seller/store?tab=orders&status=${activeTab}&orderId=${id}`);
   };
 
   const handleBackToList = () => {
     setSelectedOrderId(null);
     setSelectedReviewOrderId(null);
-    router.push(`/seller/store?tab=orders&status=${activeTab}`, { shallow: true });
+    router.push(`/seller/store?tab=orders&status=${activeTab}`);
   };
 
   const handleSelectReview = (orderId: number) => {
     setSelectedReviewOrderId(orderId);
     setSelectedOrderId(null);
-    router.push(
-      `/seller/store?tab=orders&status=${activeTab}&orderId=${orderId}&showReview=true`,
-      { shallow: true }
-    );
+    router.push(`/seller/store?tab=orders&status=${activeTab}&orderId=${orderId}&showReview=true`);
   };
 
   const handleOpenModal = (order: Order) => {
@@ -183,9 +180,7 @@ export default function OrdersTab() {
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.idOrder === updatedOrder.idOrder ? updatedOrder : o))
-    );
+    setOrders((prev) => prev.map((o) => (o.idOrder === updatedOrder.idOrder ? updatedOrder : o)));
   };
 
   const handleResiSaved = (orderId: number, awb: string) => {
@@ -196,9 +191,7 @@ export default function OrdersTab() {
     );
   };
 
-  const filteredOrders = orders.filter(
-    (order) => order.orderStatus === activeTab
-  );
+  const filteredOrders = orders.filter((order) => order.orderStatus === activeTab);
 
   // UI
   if (loading)
@@ -217,17 +210,20 @@ export default function OrdersTab() {
 
   return (
     <div className="p-6 max-w-6xl border border-gray-400 shadow-md rounded-md">
-      {/* Status Tabs */}
+      {/* Tabs Status */}
       <div className="flex overflow-x-auto gap-3 mb-4 no-scrollbar pb-2">
         {STATUS_TABS.map((status) => (
           <button
             key={status}
-            ref={(el) => (tabRefs.current[status] = el)}
+            ref={(el) => {
+              tabRefs.current[status] = el;
+            }}
             onClick={() => handleChangeStatus(status)}
-            className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${activeTab === status
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
+              activeTab === status
                 ? "bg-purple-600 text-white shadow"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+            }`}
           >
             {STATUS_LABELS[status] ?? status}
           </button>
@@ -245,11 +241,7 @@ export default function OrdersTab() {
             <ArrowLeft className="w-4 h-4" /> <span>Kembali ke daftar order</span>
           </button>
 
-          <OrderReviewPage
-            token={token}
-            idOrder={selectedReviewOrderId.toString()}
-            onBack={handleBackToList}
-          />
+          <OrderReviewPage token={effectiveToken} idOrder={selectedReviewOrderId.toString()} />
         </div>
       ) : selectedOrderId ? (
         // DETAIL PAGE
@@ -262,9 +254,8 @@ export default function OrdersTab() {
           </button>
 
           <OrderDetailPage
-            token={token}
+            token={effectiveToken}
             idOrder={selectedOrderId.toString()}
-            onBack={handleBackToList}
             onUpdate={handleOrderUpdated}
           />
         </div>
@@ -273,8 +264,7 @@ export default function OrdersTab() {
         <>
           {filteredOrders.length === 0 ? (
             <p className="text-center mt-10 text-gray-500">
-              Belum ada order untuk status{" "}
-              <strong>{STATUS_LABELS[activeTab]}</strong>
+              Belum ada order untuk status <strong>{STATUS_LABELS[activeTab]}</strong>
             </p>
           ) : (
             filteredOrders.map((order) => (
@@ -285,16 +275,16 @@ export default function OrdersTab() {
                 <div className="p-4 rounded-xl">
                   <div className="flex justify-end">
                     <span
-                      className={`px-3 py-1 rounded-md text-xs font-medium ${STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-600"
-                        }`}
+                      className={`px-3 py-1 rounded-md text-xs font-medium ${
+                        STATUS_COLORS[order.orderStatus] ??
+                        "bg-gray-100 text-gray-600"
+                      }`}
                     >
                       {STATUS_LABELS[order.orderStatus] ?? order.orderStatus}
                     </span>
                   </div>
 
-                  {order.airWayBill && (
-                    <h4 className="font-semibold">Resi: {order.airWayBill}</h4>
-                  )}
+                  {order.airWayBill && <h4 className="font-semibold">Resi: {order.airWayBill}</h4>}
 
                   {order.items?.map((item, idx) => (
                     <div
@@ -330,12 +320,15 @@ export default function OrdersTab() {
                     Lihat Detail
                   </button>
 
-                  {(order.orderStatus === "processing_seller" || order.orderStatus === "shipped") && (
+                  {(order.orderStatus === "processing_seller" ||
+                    order.orderStatus === "shipped") && (
                     <button
                       onClick={() => handleOpenModal(order)}
                       className="px-4 py-2 bg-green-400 text-white rounded-md hover:bg-green-600 transition"
                     >
-                      {order.orderStatus === "processing_seller" ? "Input Resi" : "Edit Resi"}
+                      {order.orderStatus === "processing_seller"
+                        ? "Input Resi"
+                        : "Edit Resi"}
                     </button>
                   )}
 
@@ -358,7 +351,7 @@ export default function OrdersTab() {
       {showModal && selectedOrder && (
         <InputResiModal
           order={selectedOrder}
-          token={token}
+          token={effectiveToken}
           onClose={() => setShowModal(false)}
           onSaved={handleResiSaved}
           showAlert={showAlert}

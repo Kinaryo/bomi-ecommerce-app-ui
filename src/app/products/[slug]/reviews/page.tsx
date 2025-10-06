@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import Image from "next/image";
 import StarRating from "../components/StarRating";
 
+// ================== Interfaces ==================
 interface ReviewImage {
   idImage: number;
   imageUrl: string;
@@ -29,6 +30,7 @@ interface Review {
   replies?: SellerReply[];
 }
 
+// ================== Component ==================
 export default function ReviewsPage() {
   const { slug } = useParams();
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -56,9 +58,8 @@ export default function ReviewsPage() {
         setReviews(prev =>
           page === 1 ? resData.data || [] : [...prev, ...(resData.data || [])]
         );
-        setHasMore(resData.data?.length > 0);
+        setHasMore((resData.data?.length ?? 0) > 0);
       } catch (err: unknown) {
-        // Gunakan type guard untuk menangani unknown error
         if (err instanceof Error) {
           Swal.fire("Error", err.message, "error");
         } else {
@@ -77,7 +78,9 @@ export default function ReviewsPage() {
       <h1 className="text-2xl font-bold text-gray-800">Semua Ulasan</h1>
 
       {loading && <p className="text-gray-500">Memuat...</p>}
-      {!loading && reviews.length === 0 && <p className="text-gray-500">Belum ada ulasan</p>}
+      {!loading && reviews.length === 0 && (
+        <p className="text-gray-500">Belum ada ulasan</p>
+      )}
 
       <div className="space-y-6">
         {reviews.map((review, index) => (
@@ -88,14 +91,19 @@ export default function ReviewsPage() {
             {/* Header */}
             <div className="flex items-center gap-3">
               <Image
-                src={review.user.profileUrl || "https://via.placeholder.com/40x40.png?text=?"}
+                src={
+                  review.user.profileUrl ||
+                  "https://via.placeholder.com/40x40.png?text=?"
+                }
                 alt={review.user.name || "Foto pengguna"}
                 width={40}
                 height={40}
                 className="w-10 h-10 rounded-full object-cover border"
               />
               <div>
-                <span className="font-semibold text-gray-800">{review.user.name}</span>
+                <span className="font-semibold text-gray-800">
+                  {review.user.name}
+                </span>
                 <span className="block text-xs text-gray-500">
                   {new Date(review.createdAt).toLocaleDateString("id-ID", {
                     day: "2-digit",
@@ -115,9 +123,9 @@ export default function ReviewsPage() {
             <p className="text-gray-700 mt-2">{review.comment}</p>
 
             {/* Images */}
-            {review.images?.length > 0 && (
+            {(review.images?.length ?? 0) > 0 && (
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {review.images.map((img, imgIndex) => (
+                {review.images!.map((img, imgIndex) => (
                   <Image
                     key={`${img.idImage}-${imgIndex}`}
                     src={img.imageUrl}
@@ -131,25 +139,32 @@ export default function ReviewsPage() {
             )}
 
             {/* Replies */}
-            {review.replies?.length > 0 && (
+            {(review.replies?.length ?? 0) > 0 && (
               <div className="mt-4 pl-6 border-l-4 border-blue-300 space-y-3">
-                {review.replies.map((reply, replyIndex) => (
+                {review.replies!.map((reply, replyIndex) => (
                   <div
                     key={`${reply.idReply}-${replyIndex}`}
                     className="flex items-start gap-3"
                   >
                     <Image
-                      src={reply.seller.profileImageUrl || "https://via.placeholder.com/40x40.png?text=S"}
+                      src={
+                        reply.seller.profileImageUrl ||
+                        "https://via.placeholder.com/40x40.png?text=S"
+                      }
                       alt={reply.seller.name || "Foto penjual"}
                       width={36}
                       height={36}
                       className="w-9 h-9 rounded-full object-cover border"
                     />
                     <div className="bg-gray-100 p-3 rounded-lg shadow-sm">
-                      <p className="text-sm font-semibold text-gray-800">{reply.seller.name}</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {reply.seller.name}
+                      </p>
                       {reply.seller.role && (
                         <p className="text-xs text-gray-400 italic">
-                          {reply.seller.role === "seller" ? "Penjual" : reply.seller.role}
+                          {reply.seller.role === "seller"
+                            ? "Penjual"
+                            : reply.seller.role}
                         </p>
                       )}
                       <p className="text-sm text-gray-700">{reply.reply}</p>

@@ -65,17 +65,25 @@ export default function ReviewList({
       <div className="mt-4 space-y-6">
         {reviews.length > 0 ? (
           reviews.map((review, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+            <div
+              key={index}
+              className="p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200"
+            >
               <div className="flex items-center gap-3">
                 <Image
-                  src={review.profileImageUrl || "https://via.placeholder.com/40x40.png?text=?"}
+                  src={
+                    review.profileImageUrl ||
+                    "https://via.placeholder.com/40x40.png?text=?"
+                  }
                   alt={review.name}
                   width={40}
                   height={40}
                   className="w-10 h-10 rounded-full object-cover border"
                 />
                 <div>
-                  <span className="font-semibold text-gray-800">{review.name}</span>
+                  <span className="font-semibold text-gray-800">
+                    {review.name}
+                  </span>
                   <span className="block text-xs text-gray-500">
                     {new Date(review.createdAt).toLocaleDateString("id-ID", {
                       day: "2-digit",
@@ -85,13 +93,17 @@ export default function ReviewList({
                   </span>
                 </div>
               </div>
+
               <div className="mt-2">
                 <StarRating rating={review.rating} />
               </div>
+
               <p className="text-gray-700 mt-2">{review.comment}</p>
-              {review.images?.length > 0 && (
+
+              {/* ✅ perbaikan: pastikan selalu number dengan ?? 0 */}
+              {(review.images?.length ?? 0) > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2">
-                  {review.images.map((img) => (
+                  {review.images!.map((img) => (
                     <Image
                       key={img.idImage}
                       src={img.imageUrl}
@@ -103,22 +115,30 @@ export default function ReviewList({
                   ))}
                 </div>
               )}
-              {review.replies?.length > 0 && (
+
+              {(review.replies?.length ?? 0) > 0 && (
                 <div className="mt-4 pl-6 border-l-4 border-blue-300 space-y-3">
-                  {review.replies.map((reply) => (
+                  {review.replies!.map((reply) => (
                     <div key={reply.idReply} className="flex items-start gap-3">
                       <Image
-                        src={reply.seller.profileImageUrl || "https://via.placeholder.com/40x40.png?text=S"}
+                        src={
+                          reply.seller.profileImageUrl ||
+                          "https://via.placeholder.com/40x40.png?text=S"
+                        }
                         alt={reply.seller.name}
                         width={36}
                         height={36}
                         className="w-9 h-9 rounded-full object-cover border"
                       />
                       <div className="bg-gray-100 p-3 rounded-lg shadow-sm">
-                        <p className="text-sm font-semibold text-gray-800">{reply.seller.name}</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {reply.seller.name}
+                        </p>
                         {reply.seller.role && (
                           <p className="text-xs text-gray-400 italic">
-                            {reply.seller.role === "seller" ? "Penjual" : reply.seller.role}
+                            {reply.seller.role === "seller"
+                              ? "Penjual"
+                              : reply.seller.role}
                           </p>
                         )}
                         <p className="text-sm text-gray-700">{reply.reply}</p>
@@ -133,6 +153,7 @@ export default function ReviewList({
           <p className="text-gray-500">Belum ada ulasan</p>
         )}
       </div>
+
       <div className="flex justify-center mt-6">
         <button
           onClick={handleSeeAllReviews}

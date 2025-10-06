@@ -4,12 +4,6 @@ import { useEffect, useState } from "react";
 import OrderReviewPage from "./OrderReviewPage";
 import Image from "next/image";
 
-declare global {
-  interface Window {
-    snap: unknown;
-  }
-}
-
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Menunggu Pembayaran",
   processing_seller: "Diproses Penjual",
@@ -128,10 +122,8 @@ export default function OrderDetailPage({ token, idOrder, onUpdate }: OrderDetai
     }
   };
 
-  if (loading)
-    return <p className="text-center py-10">Loading...</p>;
-  if (!order)
-    return <p className="text-center py-10">Order tidak ditemukan</p>;
+  if (loading) return <p className="text-center py-10">Loading...</p>;
+  if (!order) return <p className="text-center py-10">Order tidak ditemukan</p>;
 
   return (
     <div className="p-2">
@@ -141,8 +133,7 @@ export default function OrderDetailPage({ token, idOrder, onUpdate }: OrderDetai
           <div className="flex justify-end">
             <span
               className={`px-3 py-1 rounded-md text-xs font-medium ${
-                STATUS_COLORS[order.orderStatus] ??
-                "bg-gray-100 text-gray-600"
+                STATUS_COLORS[order.orderStatus] ?? "bg-gray-100 text-gray-600"
               }`}
             >
               {STATUS_LABELS[order.orderStatus] ?? order.orderStatus}
@@ -192,8 +183,7 @@ export default function OrderDetailPage({ token, idOrder, onUpdate }: OrderDetai
                     {Number(item.price).toLocaleString("id-ID")}
                   </p>
                   <p className="text-sm font-semibold text-gray-800">
-                    Subtotal: Rp{" "}
-                    {Number(item.totalSubPrice).toLocaleString("id-ID")}
+                    Subtotal: Rp {Number(item.totalSubPrice).toLocaleString("id-ID")}
                   </p>
                 </div>
               </div>
@@ -209,8 +199,7 @@ export default function OrderDetailPage({ token, idOrder, onUpdate }: OrderDetai
               <p>Ekspedisi: {order.shipping.expeditionName}</p>
               <p>Estimasi: {order.shipping.etd}</p>
               <p>
-                Biaya: Rp{" "}
-                {Number(order.shipping.expeditionCost).toLocaleString("id-ID")}
+                Biaya: Rp {Number(order.shipping.expeditionCost).toLocaleString("id-ID")}
               </p>
             </div>
           </div>

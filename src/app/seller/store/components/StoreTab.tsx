@@ -204,12 +204,25 @@ export default function StoreTab({ token }: StoreTabProps) {
         store={store}
         originAddress={originAddress}
         onCancel={() => setEditing(false)}
-        onSave={(updatedStore: Store, updatedAddress: OriginAddress) => {
-          setStore(updatedStore);
-          setOriginAddress(updatedAddress);
+        onSave={(updatedStore, updatedAddress) => {
+          // updatedStore: StoreForm
+          // updatedAddress: AddressForm
+          setStore((prev) => prev ? { ...prev, ...updatedStore } : { idStore: 0, ...updatedStore });
+          setOriginAddress((prev) => {
+            if (!updatedAddress) return prev;
+            const converted: OriginAddress = {
+              ...(prev || {}),
+              ...updatedAddress,
+              latitude: parseFloat(updatedAddress.latitude),
+              longitude: parseFloat(updatedAddress.longitude),
+            };
+            return converted;
+          });
+
           setEditing(false);
         }}
       />
+
     );
   }
 
@@ -223,9 +236,8 @@ export default function StoreTab({ token }: StoreTabProps) {
               <Image
                 src={store.imageUrl}
                 alt={store.storeName}
-                className={`w-full h-full object-cover ${
-                  updatingImage ? "opacity-50" : ""
-                }`}
+                className={`w-full h-full object-cover ${updatingImage ? "opacity-50" : ""
+                  }`}
                 fill
               />
             ) : (

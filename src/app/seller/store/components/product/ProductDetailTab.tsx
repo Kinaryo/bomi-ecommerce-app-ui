@@ -39,6 +39,7 @@ interface Review {
   idReview: number;
   comment: string;
   rating: number;
+  createdAt?: string;
   user: {
     name: string;
     avatar?: string;
@@ -177,12 +178,12 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
           setData((prev) =>
             prev
               ? {
-                  ...prev,
-                  dataProduct: {
-                    ...prev.dataProduct,
-                    images: updatedImages,
-                  },
-                }
+                ...prev,
+                dataProduct: {
+                  ...prev.dataProduct,
+                  images: updatedImages,
+                },
+              }
               : prev
           );
         } else {
@@ -190,12 +191,12 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
           setData((prev) =>
             prev
               ? {
-                  ...prev,
-                  dataProduct: {
-                    ...prev.dataProduct,
-                    images: updatedImages,
-                  },
-                }
+                ...prev,
+                dataProduct: {
+                  ...prev.dataProduct,
+                  images: updatedImages,
+                },
+              }
               : prev
           );
         }
@@ -250,9 +251,9 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
         setData((prev) =>
           prev
             ? {
-                ...prev,
-                dataProduct: { ...prev.dataProduct, images: updatedImages },
-              }
+              ...prev,
+              dataProduct: { ...prev.dataProduct, images: updatedImages },
+            }
             : prev
         );
       } else {
@@ -294,9 +295,9 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
         setData((prev) =>
           prev
             ? {
-                ...prev,
-                dataProduct: { ...prev.dataProduct, images: updatedImages },
-              }
+              ...prev,
+              dataProduct: { ...prev.dataProduct, images: updatedImages },
+            }
             : prev
         );
       } else {
@@ -451,8 +452,17 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
       </div>
 
       {/* Review */}
-      <div className="p-4 sm:p-6  border-gray-400 shadow-md rounded-md ">
-        <ReviewList reviews={dataReview} />
+      <div className="p-4 sm:p-6 border-gray-400 shadow-md rounded-md">
+        <ReviewList
+          reviews={dataReview.map((r) => ({
+            name: r.user.name,
+            profileImageUrl: r.user.avatar,
+            createdAt: r.createdAt ?? new Date().toISOString(),
+            rating: r.rating,
+            comment: r.comment,
+          }))}
+        />
+
       </div>
       {/* Modal Edit Produk */}
       {editModalOpen && (
@@ -464,12 +474,12 @@ export default function ProductDetail({ idProduct }: ProductDetailProps) {
             setData((prev) =>
               prev
                 ? {
-                    ...prev,
-                    dataProduct: {
-                      ...prev.dataProduct,
-                      ...updatedProduct,
-                    },
-                  }
+                  ...prev,
+                  dataProduct: {
+                    ...prev.dataProduct,
+                    ...updatedProduct,
+                  },
+                }
                 : prev
             )
           }

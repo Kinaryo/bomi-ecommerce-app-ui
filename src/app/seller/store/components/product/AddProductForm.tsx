@@ -9,9 +9,25 @@ interface Category {
   name: string;
 }
 
+export interface NewProduct {
+  idProduct: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  status: "active" | "inactive";
+  weight: number;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  images: string[];
+  idCategory: number;
+}
+
+
 interface AddProductFormProps {
   categories: Category[];
-  onAdd?: () => void; // callback setelah sukses
+  onAdd?: (product: NewProduct) => void;
 }
 
 export default function AddProductForm({ categories, onAdd }: AddProductFormProps) {
@@ -28,6 +44,7 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // load draft dari localStorage
   useEffect(() => {
     const saved = localStorage.getItem("addProductForm");
     if (saved) {
@@ -45,6 +62,7 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
     }
   }, []);
 
+  // simpan draft ke localStorage
   useEffect(() => {
     const save = {
       category,
@@ -110,8 +128,29 @@ export default function AddProductForm({ categories, onAdd }: AddProductFormProp
 
       if (data.status === "success") {
         Swal.fire("Berhasil", "Produk berhasil dibuat", "success");
-        onAdd?.();
-        // Reset form
+
+        // ✅ panggil callback onAdd dengan produk dari API (kalau ada)
+        if (data.product) {
+          onAdd?.(data.product);
+        } else {
+          // fallback: build object manual
+          onAdd?.({
+            idProduct: Date.now(),
+            name,
+            description,
+            price,
+            stock,
+            status,
+            weight,
+            length: length || null,
+            width: width || null,
+            height: height || null,
+            images: images.map((img) => URL.createObjectURL(img)),
+            idCategory: Number(category),
+          });
+        }
+
+        // reset form
         setCategory("");
         setName("");
         setDescription("");

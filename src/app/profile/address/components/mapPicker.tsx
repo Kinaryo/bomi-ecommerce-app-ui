@@ -66,11 +66,14 @@ function GeocoderControl({
   const map = useMap();
 
   useEffect(() => {
+    // ✅ Cast ke L.Control & L.Evented supaya .on() dikenali oleh TypeScript
     const geocoder = (L.Control as unknown as {
       geocoder: (opts: { defaultMarkGeocode: boolean }) => L.Control;
     }).geocoder({
       defaultMarkGeocode: false,
-    })
+    }) as L.Control & L.Evented;
+
+    geocoder
       .on("markgeocode", (e: { geocode: { center: L.LatLng } }) => {
         const { center } = e.geocode;
         map.setView(center, 15); // zoom lebih dekat

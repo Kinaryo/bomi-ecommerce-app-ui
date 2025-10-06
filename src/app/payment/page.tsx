@@ -3,24 +3,7 @@
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 
-declare global {
-  interface Window {
-    snap?: {
-      pay: (
-        token: string,
-        callbacks: {
-          onSuccess: (result: unknown) => void;
-          onPending: (result: unknown) => void;
-          onError: (result: unknown) => void;
-          onClose: () => void;
-        }
-      ) => void;
-    };
-  }
-}
-
 interface PaymentData {
-  // sesuaikan dengan struktur paymentData Anda
   [key: string]: unknown;
 }
 
@@ -51,8 +34,7 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [responseData, setResponseData] = useState<PaymentResponse | null>(null);
 
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   // Load payment data dari sessionStorage
   useEffect(() => {
@@ -65,26 +47,23 @@ export default function PaymentPage() {
   }, []);
 
   // Load Snap JS SDK
-  const loadSnapScript = () => {
-    return new Promise<void>((resolve, reject) => {
-      if (document.getElementById('NEXT_PUBLIC_MIDTRANS-script')) {
+  const loadSnapScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (document.getElementById('midtrans-snap-script')) {
         resolve();
         return;
       }
       const script = document.createElement('script');
       script.src = `${process.env.NEXT_PUBLIC_MIDTRANS_URL}/snap/snap.js`;
-      script.setAttribute(
-        'data-client-key',
-        process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ''
-      );
-      script.id = 'NEXT_PUBLIC_MIDTRANS-script';
+      script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '');
+      script.id = 'midtrans-snap-script';
       script.onload = () => resolve();
-      script.onerror = () => reject('Gagal load Snap JS');
+      script.onerror = () => reject(new Error('Gagal load Snap JS'));
       document.body.appendChild(script);
     });
   };
 
-  // Kirim request order ke backend
+  // Kirim request order ke backend dan panggil Snap
   const handlePaymentRequest = async () => {
     if (!paymentData) return;
 
@@ -104,36 +83,27 @@ export default function PaymentPage() {
         }
       );
 
-      const data: PaymentResponse & { status?: string; message?: string } =
-        await res.json();
-      if (!res.ok || data.status !== 'success')
+      const data: PaymentResponse & { status ?: string; message?: string } = await res.json();
+
+      if (!res.ok || data.status !== 'success') {
         throw new Error(data.message || 'Gagal membuat order');
+      }
 
       setResponseData(data);
 
       // Load Snap JS
       await loadSnapScript();
 
-      // Panggil Snap popup
-      if (window.snap) {
+      // Pastikan snap dan token ada
+      if (window.snap && data.paymentToken) {
         window.snap.pay(data.paymentToken, {
-          onSuccess: () => {
-            Swal.fire('Sukses', 'Pembayaran berhasil!', 'success');
-          },
-          onPending: () => {
-            Swal.fire('Pending', 'Pembayaran menunggu konfirmasi.', 'info');
-          },
-          onError: () => {
-            Swal.fire('Error', 'Pembayaran gagal.', 'error');
-          },
-          onClose: () => {
-            Swal.fire(
-              'Dibatalkan',
-              'User menutup popup pembayaran.',
-              'warning'
-            );
-          },
+          onSuccess: () => Swal.fire('Sukses', 'Pembayaran berhasil!', 'success'),
+          onPending: () => Swal.fire('Pending', 'Pembayaran menunggu konfirmasi.', 'info'),
+          onError: () => Swal.fire('Error', 'Pembayaran gagal.', 'error'),
+          onClose: () => Swal.fire('Dibatalkan', 'User menutup popup pembayaran.', 'warning'),
         });
+      } else {
+        Swal.fire('Error', 'Snap belum siap, silakan coba beberapa detik lagi.', 'error');
       }
     } catch (err) {
       const e = err as Error;
@@ -150,22 +120,11 @@ export default function PaymentPage() {
   }, [paymentData]);
 
   if (error) return <div className="p-6 text-red-500">{error}</div>;
-  if (!paymentData)
-    return (
-      <div className="p-6 text-gray-700">Menyiapkan data pembayaran...</div>
-    );
-  if (loading)
-    return <div className="p-6 text-gray-700">Memproses pembayaran...</div>;
+  if (!paymentData) return <div className="p-6 text-gray-700">Menyiapkan data pembayaran...</div>;
+  if (loading) return <div className="p-6 text-gray-700">Memproses pembayaran...</div>;
   if (!responseData) return null;
 
-  const {
-    orderId,
-    totalPayment,
-    receiver,
-    shipper,
-    courierCost,
-    totalPriceProduct,
-  } = responseData;
+  const { orderId, totalPayment, receiver, shipper, courierCost, totalPriceProduct } = responseData;
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">

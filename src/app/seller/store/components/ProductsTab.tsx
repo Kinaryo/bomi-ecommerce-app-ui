@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Star, Plus, ArrowLeft } from "lucide-react";
 import ProductDetail from "./product/ProductDetailTab";
-import AddProductForm from "./product/AddProductForm";
+import AddProductForm, { NewProduct } from "./product/AddProductForm";
 import Swal from "sweetalert2";
 import SearchBar from "../components/product/SearchBar";
 import Image from "next/image";
@@ -220,8 +220,20 @@ export default function ProductsTab({ token }: ProductsTabProps) {
     setAddingProduct(false);
   };
 
-  const handleAddProduct = (product: Product) => {
-    setProducts([product, ...products]);
+  // ✅ Mapping NewProduct → Product
+  const handleAddProduct = (newProduct: NewProduct) => {
+    const mapped: Product = {
+      idProduct: newProduct.idProduct,
+      nameProduct: newProduct.name,
+      price: newProduct.price,
+      nameStore: store?.nameStore || "Toko Saya",
+      primaryImage: newProduct.images[0] || null,
+      avgRating: 0,
+      totalReviews: 0,
+      sold: 0,
+      idCategory: newProduct.idCategory,
+    };
+    setProducts([mapped, ...products]);
     setAddingProduct(false);
   };
 
@@ -289,7 +301,6 @@ export default function ProductsTab({ token }: ProductsTabProps) {
         <AddProductForm
           categories={categories}
           onAdd={handleAddProduct}
-          nextId={products.length ? Math.max(...products.map((p) => p.idProduct)) + 1 : 1}
         />
       </div>
     );
